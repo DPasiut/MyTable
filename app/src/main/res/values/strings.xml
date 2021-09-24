@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">MyTable</string>
+    <string name="title_table">Table</string>
+    <string name="title_bluetooth">Bluetooth</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="bluetooth">Bluetooth</string>
+    <string name="disconnect">Disconnect</string>
+</resources>
