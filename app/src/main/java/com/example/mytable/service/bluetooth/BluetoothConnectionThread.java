@@ -13,11 +13,10 @@ import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
 
-import static android.content.ContentValues.TAG;
 
 public class BluetoothConnectionThread extends Thread {
+    private static final String TAG = "[BLUETOOTH_CONNECTION_THREAD]";
     private final Handler handler; // handler that gets info from Bluetooth service
-
     private final BluetoothAdapter bluetoothAdapter;
     private final BluetoothDevice device;
     private final BluetoothSocket mmSocket;
@@ -62,7 +61,7 @@ public class BluetoothConnectionThread extends Thread {
                 while (mmInStream.available() > 0 && lastChar != ';') {
                     Message msg = handler.obtainMessage(mmInStream.read());
                     handler.sendMessage(msg);
-                    //Log.d("odebrane", Integer.valueOf(mmInStream.read()).toString());
+                    Log.d("odebrane", Integer.valueOf(mmInStream.read()).toString());
                     lastChar = (char) mmInStream.read();
                     if (lastChar != ';') {
                         stringBuilder.append(lastChar);

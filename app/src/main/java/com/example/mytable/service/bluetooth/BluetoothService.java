@@ -50,7 +50,7 @@ public class BluetoothService extends android.app.Service {
         return bluetoothAdapter.getBondedDevices();
     }
 
-    public void connect(BluetoothDevice device) {
+    public void connectDevice(BluetoothDevice device) {
         stop();
         state = BluetoothCommunicationState.CONNECTING;
         try {
