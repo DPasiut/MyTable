@@ -1,30 +1,47 @@
 package com.example.mytable.service.bluetooth;
 
+import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+
+import com.example.mytable.MainActivity;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 
-public class BluetoothService extends android.app.Service {
+public class BluetoothService extends Service {
     private static final String TAG = "[BLUETOOTH_SERVICE]";
+    public static final String CHANNEL_ID = "ForegroundServiceChannel";
+
+    private final IBinder binder = new LocalBinder();
 
     private BluetoothConnectionThread connectionThread;
     private String deviceMacAddress;
     private BluetoothCommunicationState state;
-
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothDevice device;
 
+
+    @SuppressLint("HardwareIds")
     public BluetoothService() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        Log.d("BLUETOOTH_SERVICE_CONSTRUCTOR_BLUETOOTH_DEVICE_ADDRESS",bluetoothAdapter.getName() +" "+  bluetoothAdapter.getAddress());
         state = BluetoothCommunicationState.DISCONNECTED;
     }
 
@@ -43,21 +60,21 @@ public class BluetoothService extends android.app.Service {
         List<String> devices = new ArrayList();
         for(BluetoothDevice device : pairedDevices) {
             devices.add(device.getName());
+            Log.d("ADD DEVICE TO LIST ",device.getName() +" "+  device.getAddress());
+
         }
         return devices;
-    }
-    private Set<BluetoothDevice> getPairedDevices(){
-        return bluetoothAdapter.getBondedDevices();
     }
 
     public void connectDevice(BluetoothDevice device) {
         stop();
-        state = BluetoothCommunicationState.CONNECTING;
+        //TODO zrobić cos z tym stanem CONNECTING
+//        state = BluetoothCommunicationState.CONNECTING;
         try {
-            state = BluetoothCommunicationState.CONNECTED;
-            connectionThread = new BluetoothConnectionThread(bluetoothAdapter, device);
+            connectionThread = new BluetoothConnectionThread(bluetoothAdapter, device, this);
             connectionThread.start();
-        }catch (RuntimeException e){
+//            state = BluetoothCommunicationState.CONNECTED;
+        }catch (Exception e){
             state = BluetoothCommunicationState.DISCONNECTED;
             Log.d(TAG, "Something went wrong with connection");
         }
@@ -74,25 +91,37 @@ public class BluetoothService extends android.app.Service {
         }
     }
 
-    public synchronized void sendMessage(String message) {
-        if(state == BluetoothCommunicationState.CONNECTED){
-            connectionThread.write(message.getBytes());
-        }else {
-            Log.d(TAG, "Device is disconnected");
-        }
+    public void up(String s){
+        sendMessage(s);
+    }
+    public void down(String s){
+        sendMessage(s);
+    }
+
+    public void moveToPoint(String s){
+        sendMessage(s);
+    }
+
+    public void stopEngine(String s){
+        sendMessage(s);
     }
 
     public BluetoothCommunicationState getState() {
         return state;
     }
 
+    public void setState(BluetoothCommunicationState state) {
+        this.state = state;
+    }
+
+
     public boolean isBluetoothOn(){
         return bluetoothAdapter.isEnabled();
     }
+
     public void enableBluetooth(){
         try {
             bluetoothAdapter.enable();
-
         }catch (Exception e){
             Log.d(TAG, "Something went wrong on Bluetooth enable");
         }
@@ -100,16 +129,29 @@ public class BluetoothService extends android.app.Service {
 
     public void disableBluetooth(){
         try {
+            stop();
             bluetoothAdapter.disable();
 
         }catch (Exception e){
             Log.d(TAG, "Something went wrong on Bluetooth disable");
         }
     }
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+
+    public void a(Context context){
+        Toast.makeText(context, "working service method  " , Toast.LENGTH_LONG).show();
+
+    }
+
+    private Set<BluetoothDevice> getPairedDevices(){
+        return bluetoothAdapter.getBondedDevices();
+    }
+
+    private synchronized void sendMessage(String message) {
+        if(state == BluetoothCommunicationState.CONNECTED){
+            connectionThread.write(message.getBytes());
+        }else {
+            Log.d(TAG, "Device is disconnected");
+        }
     }
 
     private synchronized void stop() {
@@ -121,5 +163,55 @@ public class BluetoothService extends android.app.Service {
         }
     }
 
+    public class LocalBinder extends Binder {
+        public BluetoothService getService() {
+            return BluetoothService.this;
+        }
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        String input = intent.getStringExtra("inputExtra");
+        createNotificationChannel();
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+                0, notificationIntent, 0);
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Foreground Service")
+                .setContentText(input)
+                .setContentIntent(pendingIntent)
+                .build();
+        startForeground(1, notification);
+        //do heavy work on a background thread
+        //stopSelf();
+        return START_NOT_STICKY;
+    }
+
+    @Nullable
+    private void createNotificationChannel() {
+        NotificationChannel serviceChannel = new NotificationChannel(
+                CHANNEL_ID,
+                "Foreground Service Channel",
+                NotificationManager.IMPORTANCE_DEFAULT
+        );
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.createNotificationChannel(serviceChannel);
+    }
 
 }

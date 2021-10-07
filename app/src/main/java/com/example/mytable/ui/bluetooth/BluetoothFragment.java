@@ -1,20 +1,30 @@
 package com.example.mytable.ui.bluetooth;
 
 import android.annotation.SuppressLint;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Switch;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentFactory;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.mytable.MainActivity;
 import com.example.mytable.R;
-import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
 import java.util.Objects;
@@ -23,26 +33,41 @@ import java.util.Objects;
 
 public class BluetoothFragment extends Fragment {
 
-    private BluetoothService bluetoothService;
+    protected BluetoothService bluetoothService;
+    private boolean mBound = false;
+
     private BluetoothViewAdapter bluetoothViewAdapter;
-    private BluetoothCommunicationState state;
+    private Button disconnectButton;
+
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        bluetoothService = new BluetoothService();
-        bluetoothViewAdapter = new BluetoothViewAdapter(bluetoothService);
+
+        bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
+
+
+        Intent intent = new Intent(getActivity(), BluetoothService.class);
+        requireActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
         View root = inflater.inflate(R.layout.fragment_bluetooth, container, false);
+        disconnectButton = root.findViewById(R.id.disconnectButton);
         RecyclerView recyclerView = root.findViewById(R.id.recyclerview);
         recyclerView.setHasFixedSize(true);
         recyclerView.setAdapter(bluetoothViewAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(root.getContext()));
 
 
+
+        disconnectButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                bluetoothService.disconnect();
+                new SetBluetoothDevicesList(recyclerView, root).execute();
+            }
+        });
         @SuppressLint("UseSwitchCompatOrMaterialCode")
         Switch bluetoothSwitch = root.findViewById(R.id.bluetooth_switch);
 
-        if(bluetoothService.isBluetoothOn()){
+        if(isBtOn()){
             bluetoothSwitch.setChecked(true);
             bluetoothViewAdapter.setData();
         }
@@ -57,6 +82,13 @@ public class BluetoothFragment extends Fragment {
         });
 
         return root;
+    }
+
+    private boolean isBtOn(){
+        if (mBound){
+            return bluetoothService.isBluetoothOn();
+        }
+        return false;
     }
 
     @SuppressLint("StaticFieldLeak")
@@ -95,7 +127,23 @@ public class BluetoothFragment extends Fragment {
 
     private void clearBluetoothDevicesList(){
         bluetoothViewAdapter.clear();
-        bluetoothViewAdapter.notifyDataSetChanged();
         bluetoothService.disableBluetooth();
     }
+
+    private final ServiceConnection connection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
+            bluetoothService = binder.getService();
+            mBound = true;
+            Log.d("MAIN_ACTIVITY", "SERVICE CONNECTED");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+
+    };
 }

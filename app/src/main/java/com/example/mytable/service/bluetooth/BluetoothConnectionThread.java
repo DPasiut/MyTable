@@ -22,6 +22,11 @@ public class BluetoothConnectionThread extends Thread {
     private final BluetoothSocket mmSocket;
     private InputStream mmInStream;
     private OutputStream mmOutStream;
+    private BluetoothService bluetoothService;
+
+    public boolean isWorking() {
+        return isWorking;
+    }
 
     private volatile boolean isWorking;
     private byte[] mmBuffer; // mmBuffer store for the stream
@@ -34,7 +39,8 @@ public class BluetoothConnectionThread extends Thread {
         public static final int MESSAGE_TOAST = 2;
     }
 
-    public BluetoothConnectionThread(BluetoothAdapter bluetoothAdapter, BluetoothDevice device) {
+    public BluetoothConnectionThread(BluetoothAdapter bluetoothAdapter, BluetoothDevice device, BluetoothService bluetoothService) {
+        this.bluetoothService = bluetoothService;
         this.bluetoothAdapter = bluetoothAdapter;
         this.device = device;
         mmSocket = createSocket();
@@ -81,6 +87,7 @@ public class BluetoothConnectionThread extends Thread {
         try {
             Log.d("write", new String(bytes));
             mmOutStream.write(bytes);
+            mmOutStream.flush();
 
         } catch (IOException e) {
             Log.e(TAG, "Error occurred when sending data", e);
@@ -93,6 +100,7 @@ public class BluetoothConnectionThread extends Thread {
             mmSocket.close();
             isWorking = false;
             Log.d(TAG, "Connection closed success");
+            bluetoothService.setState(BluetoothCommunicationState.DISCONNECTED);
         } catch (IOException e) {
             Log.e(TAG, "Could not close the connect socket", e);
         }
@@ -103,11 +111,13 @@ public class BluetoothConnectionThread extends Thread {
         try {
             mmSocket.connect();
             Log.d(TAG, "Connected success");
+            bluetoothService.setState(BluetoothCommunicationState.CONNECTED);
         } catch (IOException connectException) {
             try {
                 mmSocket.close();
             } catch (IOException closeException) {
                 Log.e(TAG, "Could not close the client socket", closeException);
+                bluetoothService.setState(BluetoothCommunicationState.DISCONNECTED);
             }
         }
 
