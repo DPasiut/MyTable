@@ -8,12 +8,13 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -32,16 +33,13 @@ public class BluetoothService extends Service {
     private final IBinder binder = new LocalBinder();
 
     private BluetoothConnectionThread connectionThread;
-    private String deviceMacAddress;
     private BluetoothCommunicationState state;
     private BluetoothAdapter bluetoothAdapter;
-    private BluetoothDevice device;
-
+    private Handler bluetoothHandler;
 
     @SuppressLint("HardwareIds")
     public BluetoothService() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        Log.d("BLUETOOTH_SERVICE_CONSTRUCTOR_BLUETOOTH_DEVICE_ADDRESS",bluetoothAdapter.getName() +" "+  bluetoothAdapter.getAddress());
         state = BluetoothCommunicationState.DISCONNECTED;
     }
 
@@ -73,6 +71,18 @@ public class BluetoothService extends Service {
         try {
             connectionThread = new BluetoothConnectionThread(bluetoothAdapter, device, this);
             connectionThread.start();
+            connectionThread.setHandler(new Handler(Looper.myLooper()) {
+                @SuppressLint("SetTextI18n")
+                @Override
+                public void handleMessage(Message msg) {
+                    if(bluetoothHandler != null){
+                        Message message = bluetoothHandler.obtainMessage();
+                        message.setData(msg.getData());
+                        message.what = 1;
+                        bluetoothHandler.sendMessage(message);
+                    }
+                }
+            });
 //            state = BluetoothCommunicationState.CONNECTED;
         }catch (Exception e){
             state = BluetoothCommunicationState.DISCONNECTED;
@@ -114,7 +124,6 @@ public class BluetoothService extends Service {
         this.state = state;
     }
 
-
     public boolean isBluetoothOn(){
         return bluetoothAdapter.isEnabled();
     }
@@ -137,11 +146,9 @@ public class BluetoothService extends Service {
         }
     }
 
-    public void a(Context context){
-        Toast.makeText(context, "working service method  " , Toast.LENGTH_LONG).show();
-
+    public synchronized void setBluetoothHandler(Handler bluetoothHandler){
+        this.bluetoothHandler = bluetoothHandler;
     }
-
     private Set<BluetoothDevice> getPairedDevices(){
         return bluetoothAdapter.getBondedDevices();
     }
@@ -162,6 +169,7 @@ public class BluetoothService extends Service {
             Log.d(TAG, "State: " + state);
         }
     }
+
 
     public class LocalBinder extends Binder {
         public BluetoothService getService() {

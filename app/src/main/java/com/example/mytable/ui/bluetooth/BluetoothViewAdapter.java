@@ -51,10 +51,15 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
 
         @Override
         public void onClick(View v) {
-            String name = this.textView.getText().toString();
-            bluetoothService.connectDevice(bluetoothService.getDevice(name));
-            ConnectWithBluetoothDevice c = new ConnectWithBluetoothDevice(v, name);
-            c.execute();
+            if(!bluetoothService.isBluetoothOn()){
+                Toast.makeText(v.getContext(), "Bluetooth is OFF", Toast.LENGTH_LONG).show();
+            }else {
+                String name = this.textView.getText().toString();
+                bluetoothService.connectDevice(bluetoothService.getDevice(name));
+                ConnectWithBluetoothDevice c = new ConnectWithBluetoothDevice(v, name);
+                c.execute();
+            }
+
         }
     }
 

@@ -3,6 +3,7 @@ package com.example.mytable.service.bluetooth;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -16,22 +17,16 @@ import java.util.UUID;
 
 public class BluetoothConnectionThread extends Thread {
     private static final String TAG = "[BLUETOOTH_CONNECTION_THREAD]";
-    private final Handler handler; // handler that gets info from Bluetooth service
+    private Handler handler; // handler that gets info from Bluetooth service
     private final BluetoothAdapter bluetoothAdapter;
     private final BluetoothDevice device;
     private final BluetoothSocket mmSocket;
     private InputStream mmInStream;
     private OutputStream mmOutStream;
     private BluetoothService bluetoothService;
-
-    public boolean isWorking() {
-        return isWorking;
-    }
+    private StringBuilder stringBuilder;
 
     private volatile boolean isWorking;
-    private byte[] mmBuffer; // mmBuffer store for the stream
-    Set<BluetoothDevice> pairedDevices;
-
 
     private interface MessageConstants {
         public static final int MESSAGE_READ = 0;
@@ -51,37 +46,34 @@ public class BluetoothConnectionThread extends Thread {
             Log.e(TAG, "Could not get Input or Output stream", e);
         }
         isWorking = false;
-        handler = new Handler();
     }
 
     public void run() {
         connect();
         isWorking = true;
-        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder = new StringBuilder();
         char lastChar = '.';
-
-        mmBuffer = new byte[1024];
 
         while (isWorking) {
             try {
                 while (mmInStream.available() > 0 && lastChar != ';') {
-                    Message msg = handler.obtainMessage(mmInStream.read());
-                    handler.sendMessage(msg);
-                    Log.d("odebrane", Integer.valueOf(mmInStream.read()).toString());
                     lastChar = (char) mmInStream.read();
                     if (lastChar != ';') {
                         stringBuilder.append(lastChar);
                     }
+                    if(stringBuilder.length() > 0 && lastChar == ';'){
+                      sendMessage(stringBuilder.toString());
+                        stringBuilder = new StringBuilder();
+                        lastChar = '.';
+                    }
                 }
             } catch (IOException e) {
                 isWorking = false;
+                bluetoothService.setState(BluetoothCommunicationState.DISCONNECTED);
             }
         }
     }
 
-    public Handler getMessage(){
-        return this.handler;
-    }
     // Call this from the main activity to send data to the remote device.
     public synchronized void write(byte[] bytes) {
         try {
@@ -123,17 +115,6 @@ public class BluetoothConnectionThread extends Thread {
 
     }
 
-//    private BluetoothDevice getDevice() {
-//        return bluetoothAdapter.getBondedDevices().stream()
-//                .filter(bluetoothDevice -> bluetoothDevice.getName().equals("XM-15"))
-//                .findFirst().orElseThrow(NullPointerException::new);
-//    }
-
-//    public Set<BluetoothDevice> getPairedDevices(){
-//        pairedDevices = bluetoothAdapter.getBondedDevices();
-//        return bluetoothAdapter.getBondedDevices();
-//    }
-
     private BluetoothSocket createSocket() {
         BluetoothSocket tmp = null;
         try {
@@ -144,4 +125,27 @@ public class BluetoothConnectionThread extends Thread {
         }
         return tmp;
     }
+
+    public boolean isWorking() {
+        return isWorking;
+    }
+
+    public synchronized Handler getMessage(){
+        return this.handler;
+    }
+
+    private synchronized void sendMessage(String message){
+        if (handler != null){
+            Message msg = handler.obtainMessage();
+            Bundle bundle = new Bundle();
+            bundle.putString("message", message);
+            msg.setData(bundle);
+            msg.what = 1;
+            handler.sendMessage(msg);
+        }
+
+    }
+    public void setHandler(Handler handler){ this.handler = handler;
+    }
+
 }
