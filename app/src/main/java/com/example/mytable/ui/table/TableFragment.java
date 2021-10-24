@@ -95,7 +95,7 @@ public class TableFragment extends Fragment {
         userButton1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                moveToPoint("u" + Integer.valueOf(high1).toString());
+                moveToPoint(Integer.valueOf(high1).toString());
             }
         });
 
@@ -159,15 +159,17 @@ public class TableFragment extends Fragment {
                     if(position != null){
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("message");
-                        if(count == 50){
-                            int tmp = tableHigh/50;
+                        if(count == 25){
+                            int tmp = tableHigh/25;
                             currentPosition = tmp;
                             position.setText(String.valueOf(tmp));
                             tableHigh = 0;
                             count = 0;
                         }
-                        tableHigh += Integer.parseInt(o);
-                        count++;
+                        if(o != null){
+                            tableHigh += Integer.parseInt(o);
+                            count++;
+                        }
                     }
                 }
             });
