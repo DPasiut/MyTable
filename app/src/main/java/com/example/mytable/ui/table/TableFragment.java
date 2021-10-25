@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -23,8 +24,13 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import com.example.mytable.R;
+import com.example.mytable.database.AppDatabase;
+import com.example.mytable.database.Setting;
+import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class TableFragment extends Fragment {
@@ -36,11 +42,8 @@ public class TableFragment extends Fragment {
     private int tableHigh = 0;
     private int count = 0;
 
-    private int high1;
-    private int high2;
-    private int high3;
+    private Integer currentPosition;
 
-    private int currentPosition = 0;
 
     @SuppressLint("ClickableViewAccessibility")
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -56,7 +59,9 @@ public class TableFragment extends Fragment {
         Intent intent = new Intent(getActivity(), BluetoothService.class);
         requireActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
-        position.setText(String.valueOf(currentPosition));
+        AppDatabase appDb = AppDatabase.getInstance(this.getContext());
+        //new GetSetting(appDb, root).execute();
+
 
         upButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -95,22 +100,25 @@ public class TableFragment extends Fragment {
         userButton1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                moveToPoint(Integer.valueOf(high1).toString());
+                if(bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
+                    Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
+
+                }else {
+                    new GetSetting(appDb, root, 1).execute();
+                }
             }
         });
 
         userButton1.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                high1 = currentPosition;
-                Toast.makeText(v.getContext(), currentPosition + " cm has been set", Toast.LENGTH_LONG).show();
+                new UpsertSetting(appDb, root, "first_high",1).execute();
                 return true;
             }
         });
         userButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                moveToPoint("d100");
             }
 
         });
@@ -118,7 +126,7 @@ public class TableFragment extends Fragment {
         userButton3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                moveToPoint("u500");
+
             }
         });
         return root;
@@ -150,8 +158,6 @@ public class TableFragment extends Fragment {
         public void onServiceConnected(ComponentName className, IBinder service) {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             bluetoothService = binder.getService();
-
-
             bluetoothService.setBluetoothHandler(new Handler(Looper.myLooper()) {
                 @SuppressLint("SetTextI18n")
                 @Override
@@ -160,7 +166,7 @@ public class TableFragment extends Fragment {
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("message");
                         if(count == 25){
-                            int tmp = tableHigh/25;
+                            Integer tmp = tableHigh/25;
                             currentPosition = tmp;
                             position.setText(String.valueOf(tmp));
                             tableHigh = 0;
@@ -186,4 +192,64 @@ public class TableFragment extends Fragment {
         }
     };
 
+    private class UpsertSetting extends AsyncTask<Void, Void, Void> {
+        AppDatabase appDb;
+        View view;
+        String name;
+        Integer id;
+
+        public UpsertSetting(AppDatabase database, View view, String name, Integer id) {
+            this.appDb = database;
+            this.view = view;
+            this.name = name;
+            this.id = id;
+        }
+        @Override
+        protected Void doInBackground(Void... arg0) {
+            try {
+                String tmp = appDb.settingsDao().getValueBySettingId(id);
+                appDb.settingsDao().updateSettingValueByName(id, String.valueOf(currentPosition));
+
+            }catch (Exception e){
+                appDb.settingsDao().insert(id, name, String.valueOf(currentPosition));
+            }
+                return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            Toast.makeText(view.getContext(), currentPosition + " cm has been set", Toast.LENGTH_LONG).show();
+        }
+
+    }
+
+    private class GetSetting extends AsyncTask<Void, Void, Void> {
+        AppDatabase appDb;
+        View view;
+        String tmp = null;
+        Integer id;
+
+        public GetSetting(AppDatabase database, View view, Integer id) {
+            this.appDb = database;
+            this.view = view;
+            this.id = id;
+        }
+        @Override
+        protected Void doInBackground(Void... arg0) {
+            try {
+                 tmp = appDb.settingsDao().getValueBySettingId(id);
+            }catch (Exception e){
+                Log.d("TABLE_FRAGMENT", "something went wrong on GetSetting");
+            }
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            if (tmp != null){
+                moveToPoint(tmp);
+            }else {
+                Toast.makeText(view.getContext(),"Please long press on button first", Toast.LENGTH_LONG).show();
+            }
+
+        }
+    }
 }
