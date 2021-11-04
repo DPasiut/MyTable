@@ -73,26 +73,25 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:orientation="horizontal"
-
                 >
 
                 <Button
                     android:id="@+id/user_1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="1" />
+                    android:drawableLeft="@drawable/seat_icon"/>
                 <Button
                     android:id="@+id/user_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="2"
+                    android:drawableLeft="@drawable/stand_icon"
                     android:layout_marginLeft="10dp"
                     android:layout_marginRight="10dp"/>
                 <Button
                     android:id="@+id/user_3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="3" />
+                    android:drawableLeft="@drawable/first_setting_icon" />
             </LinearLayout>
         </LinearLayout>
 

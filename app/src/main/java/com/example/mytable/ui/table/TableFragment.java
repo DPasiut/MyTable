@@ -5,13 +5,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.AsyncTask;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -24,130 +23,196 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import com.example.mytable.R;
-import com.example.mytable.database.AppDatabase;
-import com.example.mytable.database.Setting;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
-
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class TableFragment extends Fragment {
 
+    private static final String FIRST_POSITION = "firstPosition";
+    private static final String SECOND_POSITION = "secondPosition";
+    private static final String THIRD_POSITION = "thirdPosition";
+    private static final String DEFAULT_POSITION_VALUE = "0";
+
     protected BluetoothService bluetoothService;
     private boolean mBound = false;
-    private Button upButton, downButton, userButton1, userButton2, userButton3;
     private TextView position;
     private int tableHigh = 0;
     private int count = 0;
 
     private Integer currentPosition;
 
+    private String firstPosition, secondPosition, thirdPosition;
 
     @SuppressLint("ClickableViewAccessibility")
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_table, container, false);
-        upButton = root.findViewById(R.id.up_btn);
-        downButton = root.findViewById(R.id.down_btn);
-        userButton1 = root.findViewById(R.id.user_1);
-        userButton2 = root.findViewById(R.id.user_2);
-        userButton3 = root.findViewById(R.id.user_3);
+        Button upButton = root.findViewById(R.id.up_btn);
+        Button downButton = root.findViewById(R.id.down_btn);
+        Button userButton1 = root.findViewById(R.id.user_1);
+        Button userButton2 = root.findViewById(R.id.user_2);
+        Button userButton3 = root.findViewById(R.id.user_3);
         position = root.findViewById(R.id.position);
 
         Intent intent = new Intent(getActivity(), BluetoothService.class);
         requireActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
-        AppDatabase appDb = AppDatabase.getInstance(this.getContext());
-        //new GetSetting(appDb, root).execute();
+        getPreferences();
 
+        setButtonText(userButton1, firstPosition);
+        setButtonText(userButton2, secondPosition);
+        setButtonText(userButton3, thirdPosition);
 
-        upButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (mBound) {
-                    switch(event.getAction()) {
-                        case MotionEvent.ACTION_DOWN:
-                            up(this);
-                            break;
-                        case MotionEvent.ACTION_UP:
-                        case MotionEvent.ACTION_CANCEL:
-                            stop(this);
-                            break;
-                    }
-                }
-                return true;
-            }
-        });
-
-        downButton.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
+        upButton.setOnTouchListener((v, event) -> {
+            if (mBound) {
                 switch(event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        down(this);
+                        if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+                            up();
+                        }else {
+                            Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
+                        }
                         break;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-                        stop(this);
+                        stop();
                         break;
                 }
-                return false;
+            }
+            return true;
+        });
+
+        downButton.setOnTouchListener((v, event) -> {
+            switch(event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+                        down();
+                    }else {
+                        Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    stop();
+                    break;
+            }
+            return false;
+        });
+
+        userButton1.setOnClickListener(v -> {
+            if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+                moveToPoint(firstPosition);
+            }else {
+                Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
             }
         });
 
-        userButton1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
-                    Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
-
-                }else {
-                    new GetSetting(appDb, root, 1).execute();
-                }
-            }
-        });
-
-        userButton1.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                new UpsertSetting(appDb, root, "first_high",1).execute();
+        userButton1.setOnLongClickListener(v -> {
+            if (currentPosition != null){
+                firstPosition = currentPosition.toString();
+                savePositionToPreferences(FIRST_POSITION, firstPosition);
+                setButtonText(userButton1, firstPosition);
                 return true;
+            } else {
+                Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
             }
-        });
-        userButton2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-            }
-
+            return false;
         });
 
-        userButton3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
+        userButton2.setOnClickListener(v -> {
+            if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+                moveToPoint(secondPosition);
+            }else {
+                Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
             }
         });
+
+        userButton2.setOnLongClickListener(v -> {
+            if (currentPosition != null){
+                secondPosition = currentPosition.toString();
+                savePositionToPreferences(SECOND_POSITION, secondPosition);
+                setButtonText(userButton2, secondPosition);
+                return true;
+            } else {
+                Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
+            }
+            return false;
+        });
+
+        userButton3.setOnClickListener(v -> {
+            if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+                moveToPoint(thirdPosition);
+            }else {
+                Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
+            }
+        });
+
+        userButton3.setOnLongClickListener(v -> {
+            if (currentPosition != null){
+                thirdPosition = currentPosition.toString();
+                savePositionToPreferences(THIRD_POSITION, thirdPosition);
+                setButtonText(userButton3, thirdPosition);
+                return true;
+            } else {
+                Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
+            }
+            return false;
+        });
+
         return root;
 
 
     }
 
+    private void setButtonText(Button button, String text){
+        button.setText(text);
+    }
 
+    private void savePositionToPreferences(String key, String value) {
+            SharedPreferences sharedPreferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+            SharedPreferences.Editor myEdit = sharedPreferences.edit();
+            myEdit.putString(key, value);
+            myEdit.apply();
+    }
+
+    private void getPreferences(){
+        SharedPreferences preferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+//        currentPosition = Integer.valueOf(preferences.getString("currentPosition", "0"));
+        firstPosition = preferences.getString(FIRST_POSITION, DEFAULT_POSITION_VALUE);
+        secondPosition = preferences.getString(SECOND_POSITION, DEFAULT_POSITION_VALUE);
+        thirdPosition = preferences.getString(THIRD_POSITION, DEFAULT_POSITION_VALUE);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getPreferences();
+    }
+
+    public void onPause() {
+        super.onPause();
+//        if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+//            SharedPreferences sharedPreferences = this.requireActivity().getSharedPreferences("MySharedPref", Context.MODE_PRIVATE);
+//            SharedPreferences.Editor myEdit = sharedPreferences.edit();
+//
+//            myEdit.putString("currentPosition", currentPosition.toString());
+//            myEdit.apply();
+//        }
+    }
     private void moveToPoint(String s){
         bluetoothService.moveToPoint(s);
     }
 
-    private void up(View.OnTouchListener v) {
+    private void up() {
         bluetoothService.up("q");
     }
 
-    private void down(View.OnTouchListener v) {
+    private void down() {
         bluetoothService.down("e");
     }
 
-    private void stop(View.OnTouchListener v) {
+    private void stop() {
         bluetoothService.stopEngine("w");
     }
 
@@ -169,6 +234,7 @@ public class TableFragment extends Fragment {
                             Integer tmp = tableHigh/25;
                             currentPosition = tmp;
                             position.setText(String.valueOf(tmp));
+//                            savePositionToPreferences("currentPosition", String.valueOf(currentPosition) );
                             tableHigh = 0;
                             count = 0;
                         }
@@ -179,77 +245,76 @@ public class TableFragment extends Fragment {
                     }
                 }
             });
-
             mBound = true;
-            Log.d("MAIN_ACTIVITY", "SERVICE CONNECTED FROM TABLE_FRAGMENT" );
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
-            Log.d("MAIN_ACTIVITY", "SERVICE DISCONNECTED FROM TABLE_FRAGMENT" );
             bluetoothService.setBluetoothHandler(null);
         }
     };
 
-    private class UpsertSetting extends AsyncTask<Void, Void, Void> {
-        AppDatabase appDb;
-        View view;
-        String name;
-        Integer id;
+    //Asynctasks to save and read values from RoomDatabase
+//    private class UpsertSetting extends AsyncTask<Void, Void, Void> {
+//        AppDatabase appDb;
+//        View view;
+//        String name;
+//        Integer id;
+//
+//        public UpsertSetting(AppDatabase database, View view, String name, Integer id) {
+//            this.appDb = database;
+//            this.view = view;
+//            this.name = name;
+//            this.id = id;
+//        }
+//        @Override
+//        protected Void doInBackground(Void... arg0) {
+//            try {
+//                String tmp = appDb.settingsDao().getValueBySettingId(id);
+//                appDb.settingsDao().updateSettingValueByName(id, String.valueOf(currentPosition));
+//
+//            }catch (Exception e){
+//                appDb.settingsDao().insert(id, name, String.valueOf(currentPosition));
+//            }
+//                return null;
+//        }
+//        @Override
+//        protected void onPostExecute(Void result) {
+//            Toast.makeText(view.getContext(), currentPosition + " cm has been set", Toast.LENGTH_LONG).show();
+//        }
+//
+//    }
 
-        public UpsertSetting(AppDatabase database, View view, String name, Integer id) {
-            this.appDb = database;
-            this.view = view;
-            this.name = name;
-            this.id = id;
-        }
-        @Override
-        protected Void doInBackground(Void... arg0) {
-            try {
-                String tmp = appDb.settingsDao().getValueBySettingId(id);
-                appDb.settingsDao().updateSettingValueByName(id, String.valueOf(currentPosition));
 
-            }catch (Exception e){
-                appDb.settingsDao().insert(id, name, String.valueOf(currentPosition));
-            }
-                return null;
-        }
-        @Override
-        protected void onPostExecute(Void result) {
-            Toast.makeText(view.getContext(), currentPosition + " cm has been set", Toast.LENGTH_LONG).show();
-        }
-
-    }
-
-    private class GetSetting extends AsyncTask<Void, Void, Void> {
-        AppDatabase appDb;
-        View view;
-        String tmp = null;
-        Integer id;
-
-        public GetSetting(AppDatabase database, View view, Integer id) {
-            this.appDb = database;
-            this.view = view;
-            this.id = id;
-        }
-        @Override
-        protected Void doInBackground(Void... arg0) {
-            try {
-                 tmp = appDb.settingsDao().getValueBySettingId(id);
-            }catch (Exception e){
-                Log.d("TABLE_FRAGMENT", "something went wrong on GetSetting");
-            }
-            return null;
-        }
-        @Override
-        protected void onPostExecute(Void result) {
-            if (tmp != null){
-                moveToPoint(tmp);
-            }else {
-                Toast.makeText(view.getContext(),"Please long press on button first", Toast.LENGTH_LONG).show();
-            }
-
-        }
-    }
+//    private class GetSetting extends AsyncTask<Void, Void, Void> {
+//        AppDatabase appDb;
+//        View view;
+//        String tmp = null;
+//        Integer id;
+//
+//        public GetSetting(AppDatabase database, View view, Integer id) {
+//            this.appDb = database;
+//            this.view = view;
+//            this.id = id;
+//        }
+//        @Override
+//        protected Void doInBackground(Void... arg0) {
+//            try {
+//                 tmp = appDb.settingsDao().getValueBySettingId(id);
+//            }catch (Exception e){
+//                Log.d("TABLE_FRAGMENT", "something went wrong on GetSetting");
+//            }
+//            return null;
+//        }
+//        @Override
+//        protected void onPostExecute(Void result) {
+//            if (tmp != null){
+//                moveToPoint(tmp);
+//            }else {
+//                Toast.makeText(view.getContext(),"Please long press on button first", Toast.LENGTH_LONG).show();
+//            }
+//
+//        }
+//    }
 }
