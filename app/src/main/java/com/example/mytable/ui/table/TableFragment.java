@@ -178,7 +178,6 @@ public class TableFragment extends Fragment {
 
     private void getPreferences(){
         SharedPreferences preferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
-//        currentPosition = Integer.valueOf(preferences.getString("currentPosition", "0"));
         firstPosition = preferences.getString(FIRST_POSITION, DEFAULT_POSITION_VALUE);
         secondPosition = preferences.getString(SECOND_POSITION, DEFAULT_POSITION_VALUE);
         thirdPosition = preferences.getString(THIRD_POSITION, DEFAULT_POSITION_VALUE);
@@ -192,13 +191,6 @@ public class TableFragment extends Fragment {
 
     public void onPause() {
         super.onPause();
-//        if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
-//            SharedPreferences sharedPreferences = this.requireActivity().getSharedPreferences("MySharedPref", Context.MODE_PRIVATE);
-//            SharedPreferences.Editor myEdit = sharedPreferences.edit();
-//
-//            myEdit.putString("currentPosition", currentPosition.toString());
-//            myEdit.apply();
-//        }
     }
     private void moveToPoint(String s){
         bluetoothService.moveToPoint(s);
@@ -234,7 +226,6 @@ public class TableFragment extends Fragment {
                             Integer tmp = tableHigh/25;
                             currentPosition = tmp;
                             position.setText(String.valueOf(tmp));
-//                            savePositionToPreferences("currentPosition", String.valueOf(currentPosition) );
                             tableHigh = 0;
                             count = 0;
                         }

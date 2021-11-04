@@ -1,14 +1,17 @@
 package com.example.mytable.ui.bluetooth;
 
 import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
-import android.util.Log;
+import android.os.Looper;
+import android.os.Message;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,11 +19,13 @@ import android.widget.Button;
 import android.widget.Switch;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mytable.R;
+import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
 import java.util.Objects;
@@ -33,16 +38,16 @@ public class BluetoothFragment extends Fragment {
     private boolean mBound = false;
 
     private BluetoothViewAdapter bluetoothViewAdapter;
-    private Button disconnectButton;
 
+    @SuppressLint("UseSwitchCompatOrMaterialCode")
+    private Switch bluetoothSwitch;
+    private Button disconnectButton;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
 
-        bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
-
-
         Intent intent = new Intent(getActivity(), BluetoothService.class);
+        bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
         requireActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
         View root = inflater.inflate(R.layout.fragment_bluetooth, container, false);
@@ -51,22 +56,11 @@ public class BluetoothFragment extends Fragment {
         recyclerView.setHasFixedSize(true);
         recyclerView.setAdapter(bluetoothViewAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(root.getContext()));
+        bluetoothSwitch = root.findViewById(R.id.bluetooth_switch);
 
-
-
-        disconnectButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                bluetoothService.disconnect();
-                new SetBluetoothDevicesList(recyclerView, root).execute();
-            }
-        });
-        @SuppressLint("UseSwitchCompatOrMaterialCode")
-        Switch bluetoothSwitch = root.findViewById(R.id.bluetooth_switch);
-
-//        if(isBtOn()){
-//            bluetoothSwitch.setChecked(true);
-//            bluetoothViewAdapter.setData();
-//        }
+        if(BluetoothAdapter.getDefaultAdapter().isEnabled()){
+            bluetoothSwitch.setChecked(true);
+        }
 
         bluetoothSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -77,14 +71,12 @@ public class BluetoothFragment extends Fragment {
             }
         });
 
-        return root;
-    }
+        disconnectButton.setOnClickListener(v -> {
+            bluetoothService.disconnect();
+            new SetBluetoothDevicesList(recyclerView, root).execute();
+        });
 
-    private boolean isBtOn(){
-        if (mBound){
-            return bluetoothService.isBluetoothOn();
-        }
-        return false;
+        return root;
     }
 
     @SuppressLint("StaticFieldLeak")
@@ -132,14 +124,37 @@ public class BluetoothFragment extends Fragment {
         public void onServiceConnected(ComponentName className, IBinder service) {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             bluetoothService = binder.getService();
+
+            bluetoothService.setStateHandler(new Handler(Looper.myLooper()) {
+                @Override
+                public void handleMessage(Message msg) {
+                    Bundle bundle = msg.getData();
+                    String connectionState = (String) bundle.get("state");
+
+                    switch (connectionState) {
+                        case "CONNECTED":
+                            disconnectButton.setVisibility(View.VISIBLE);
+                            break;
+                        case "DISCONNECTED":
+                            disconnectButton.setVisibility(View.INVISIBLE);
+                    }
+                }
+            });
+
             mBound = true;
-            Log.d("MAIN_ACTIVITY", "SERVICE CONNECTED");
+
+            if (bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
+                bluetoothViewAdapter.setData();
+                disconnectButton.setVisibility(View.INVISIBLE);
+            }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
+            bluetoothService.setBluetoothHandler(null);
         }
-
     };
+
+
 }

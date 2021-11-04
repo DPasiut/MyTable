@@ -16,7 +16,7 @@ import java.util.UUID;
 
 public class BluetoothConnectionThread extends Thread {
     private static final String TAG = "[BLUETOOTH_CONNECTION_THREAD]";
-    private Handler handler; // handler that gets info from Bluetooth service
+    private Handler handler;
     private final BluetoothAdapter bluetoothAdapter;
     private final BluetoothDevice device;
     private final BluetoothSocket mmSocket;
@@ -125,14 +125,6 @@ public class BluetoothConnectionThread extends Thread {
         return tmp;
     }
 
-    public boolean isWorking() {
-        return isWorking;
-    }
-
-    public synchronized Handler getMessage(){
-        return this.handler;
-    }
-
     private synchronized void sendMessage(String message){
         if (handler != null){
             Message msg = handler.obtainMessage();
@@ -144,7 +136,8 @@ public class BluetoothConnectionThread extends Thread {
         }
 
     }
-    public void setHandler(Handler handler){ this.handler = handler;
+    public void setHandler(Handler handler){
+        this.handler = handler;
     }
 
 }

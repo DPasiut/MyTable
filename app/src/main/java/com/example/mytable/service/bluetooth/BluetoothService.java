@@ -10,6 +10,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -34,17 +35,14 @@ public class BluetoothService extends Service {
 
     private BluetoothConnectionThread connectionThread;
     private BluetoothCommunicationState state;
-    private BluetoothAdapter bluetoothAdapter;
+    private final BluetoothAdapter bluetoothAdapter;
     private Handler bluetoothHandler;
+    private Handler stateHandler;
 
     @SuppressLint("HardwareIds")
     public BluetoothService() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         state = BluetoothCommunicationState.DISCONNECTED;
-    }
-
-    public String getMessage(){
-        return connectionThread.getMessage().toString();
     }
 
     public BluetoothDevice getDevice(String name) {
@@ -65,7 +63,7 @@ public class BluetoothService extends Service {
     }
 
     public void connectDevice(BluetoothDevice device) {
-        stop();
+        stopConnectionThread();
         //TODO zrobić cos z tym stanem CONNECTING
 //        state = BluetoothCommunicationState.CONNECTING;
         try {
@@ -93,7 +91,7 @@ public class BluetoothService extends Service {
     public void disconnect() {
         Log.d(TAG, "I am trying disconnect device. My current state: " + state);
         try {
-            stop();
+            stopConnectionThread();
         } catch (RuntimeException e){
             Log.d(TAG, "Something went wrong with disconnection");
         } finally {
@@ -102,18 +100,19 @@ public class BluetoothService extends Service {
     }
 
     public void up(String s){
-        sendMessage(s);
+        sendMessageToDevice(s);
     }
+
     public void down(String s){
-        sendMessage(s);
+        sendMessageToDevice(s);
     }
 
     public void moveToPoint(String s){
-        sendMessage(s);
+        sendMessageToDevice(s);
     }
 
     public void stopEngine(String s){
-        sendMessage(s);
+        sendMessageToDevice(s);
     }
 
     public BluetoothCommunicationState getState() {
@@ -122,6 +121,7 @@ public class BluetoothService extends Service {
 
     public void setState(BluetoothCommunicationState state) {
         this.state = state;
+        sendStateChangedMessage();
     }
 
     public boolean isBluetoothOn(){
@@ -138,7 +138,7 @@ public class BluetoothService extends Service {
 
     public void disableBluetooth(){
         try {
-            stop();
+            stopConnectionThread();
             bluetoothAdapter.disable();
 
         }catch (Exception e){
@@ -149,11 +149,27 @@ public class BluetoothService extends Service {
     public synchronized void setBluetoothHandler(Handler bluetoothHandler){
         this.bluetoothHandler = bluetoothHandler;
     }
+
+    public synchronized void setStateHandler(Handler stateHandler){
+        this.stateHandler = stateHandler;
+    }
+
+    private synchronized void sendStateChangedMessage(){
+        if (stateHandler != null){
+            Message msg = stateHandler.obtainMessage();
+            Bundle bundle = new Bundle();
+            bundle.putString("state", state.toString());
+            msg.setData(bundle);
+            msg.what = 1;
+            stateHandler.sendMessage(msg);
+        }
+
+    }
     private Set<BluetoothDevice> getPairedDevices(){
         return bluetoothAdapter.getBondedDevices();
     }
 
-    private synchronized void sendMessage(String message) {
+    private synchronized void sendMessageToDevice(String message) {
         if(state == BluetoothCommunicationState.CONNECTED){
             connectionThread.write(message.getBytes());
         }else {
@@ -161,7 +177,7 @@ public class BluetoothService extends Service {
         }
     }
 
-    private synchronized void stop() {
+    private synchronized void stopConnectionThread() {
         if (connectionThread != null) {
             connectionThread.cancel();
             connectionThread = null;
@@ -169,7 +185,6 @@ public class BluetoothService extends Service {
             Log.d(TAG, "State: " + state);
         }
     }
-
 
     public class LocalBinder extends Binder {
         public BluetoothService getService() {
@@ -211,7 +226,6 @@ public class BluetoothService extends Service {
         return START_NOT_STICKY;
     }
 
-    @Nullable
     private void createNotificationChannel() {
         NotificationChannel serviceChannel = new NotificationChannel(
                 CHANNEL_ID,

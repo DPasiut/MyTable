@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.IBinder;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +19,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mytable.R;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +64,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
         }
     }
 
+    @NotNull
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         View view = LayoutInflater.from(viewGroup.getContext())
@@ -140,12 +142,12 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             bluetoothService = binder.getService();
             mBound = true;
-            Log.d("MAIN_ACTIVITY", "SERVICE CONNECTED");
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
+            bluetoothService.setBluetoothHandler(null);
         }
 
     };
