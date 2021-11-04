@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -39,7 +40,7 @@ public class TableFragment extends Fragment {
     private TextView position;
     private int tableHigh = 0;
     private int count = 0;
-
+    private Boolean canClick = true;
     private Integer currentPosition;
 
     private String firstPosition, secondPosition, thirdPosition;
@@ -102,7 +103,13 @@ public class TableFragment extends Fragment {
 
         userButton1.setOnClickListener(v -> {
             if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
-                moveToPoint(firstPosition);
+                if(canClick){
+                    canClick = false;
+                    new MoveToPoint(firstPosition).execute();
+                }else {
+                    Toast.makeText(root.getContext(),"Table is moving now", Toast.LENGTH_LONG).show();
+                }
+
             }else {
                 Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
             }
@@ -122,7 +129,12 @@ public class TableFragment extends Fragment {
 
         userButton2.setOnClickListener(v -> {
             if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
-                moveToPoint(secondPosition);
+                if(canClick){
+                    canClick = false;
+                    new MoveToPoint(secondPosition).execute();
+                } else {
+                    Toast.makeText(root.getContext(),"Table is moving now", Toast.LENGTH_LONG).show();
+                }
             }else {
                 Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
             }
@@ -142,8 +154,13 @@ public class TableFragment extends Fragment {
 
         userButton3.setOnClickListener(v -> {
             if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
-                moveToPoint(thirdPosition);
-            }else {
+                if(canClick){
+                    canClick = false;
+                    new MoveToPoint(thirdPosition).execute();
+                } else {
+                    Toast.makeText(root.getContext(),"Table is moving now", Toast.LENGTH_LONG).show();
+                }
+            } else {
                 Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
             }
         });
@@ -246,6 +263,35 @@ public class TableFragment extends Fragment {
         }
     };
 
+    @SuppressLint("StaticFieldLeak")
+    private class MoveToPoint extends AsyncTask<Void, Void, Void> {
+        String destinationPosition;
+        public MoveToPoint(String destinationPosition) {
+            this.destinationPosition = destinationPosition;
+        }
+        @Override
+        protected Void doInBackground(Void... arg0) {
+            try {
+                boolean needWait = doesMotorWorking();
+                while (needWait){
+                    moveToPoint(destinationPosition);
+                    Thread.sleep(50);
+                    needWait = doesMotorWorking();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+        @Override
+        protected void onPostExecute(Void result) {
+            canClick = true;
+        }
+
+        private boolean doesMotorWorking(){
+            return Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 5;
+        }
+    }
     //Asynctasks to save and read values from RoomDatabase
 //    private class UpsertSetting extends AsyncTask<Void, Void, Void> {
 //        AppDatabase appDb;

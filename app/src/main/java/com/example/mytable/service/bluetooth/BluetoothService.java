@@ -56,8 +56,6 @@ public class BluetoothService extends Service {
         List<String> devices = new ArrayList();
         for(BluetoothDevice device : pairedDevices) {
             devices.add(device.getName());
-            Log.d("ADD DEVICE TO LIST ",device.getName() +" "+  device.getAddress());
-
         }
         return devices;
     }
@@ -89,7 +87,6 @@ public class BluetoothService extends Service {
     }
 
     public void disconnect() {
-        Log.d(TAG, "I am trying disconnect device. My current state: " + state);
         try {
             stopConnectionThread();
         } catch (RuntimeException e){

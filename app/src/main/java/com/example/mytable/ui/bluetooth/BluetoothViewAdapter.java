@@ -2,10 +2,13 @@ package com.example.mytable.ui.bluetooth;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.view.LayoutInflater;
@@ -30,6 +33,9 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
     private final List<String> localDataSet;
     private BluetoothService bluetoothService;
     private boolean mBound = false;
+    private String name;
+    private Context context;
+    private View view;
 
     public BluetoothViewAdapter(Activity activity) {
         localDataSet = new ArrayList<>();
@@ -53,15 +59,48 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
         @Override
         public void onClick(View v) {
             if(!bluetoothService.isBluetoothOn()){
-                Toast.makeText(v.getContext(), "Bluetooth is OFF", Toast.LENGTH_LONG).show();
+                Toast.makeText(v.getContext(), "Bluetooth is OFF", Toast.LENGTH_SHORT).show();
             }else {
-                String name = this.textView.getText().toString();
-                bluetoothService.connectDevice(bluetoothService.getDevice(name));
-                ConnectWithBluetoothDevice c = new ConnectWithBluetoothDevice(v, name);
-                c.execute();
-            }
+                name = this.textView.getText().toString();
+                context = v.getContext();
+                view = v;
 
+                SharedPreferences preferences = v.getContext().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+                String deviceName = preferences.getString("deviceName", "");
+
+                if(!name.equals(deviceName)){
+                    AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
+                    builder.setMessage("Do you want save " + name.toUpperCase() +" as default device for automatic connection?").setPositiveButton("Yes", dialogClickListener)
+                            .setNegativeButton("No", dialogClickListener).show();
+                }else {
+                    connect(name, v);
+                }
+            }
         }
+    }
+
+    DialogInterface.OnClickListener dialogClickListener = (dialog, which) -> {
+        switch (which){
+            case DialogInterface.BUTTON_POSITIVE:
+                connect(name, view);
+                saveDeviceName("deviceName", name, context);
+                break;
+
+            case DialogInterface.BUTTON_NEGATIVE:
+                connect(name, view);
+                break;
+        }
+    };
+
+    private void connect(String name, View view){
+        bluetoothService.connectDevice(bluetoothService.getDevice(name));
+        new ConnectWithBluetoothDevice(view, name).execute();
+    }
+    private void saveDeviceName(String key, String value, Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+        SharedPreferences.Editor myEdit = sharedPreferences.edit();
+        myEdit.putString(key, value);
+        myEdit.apply();
     }
 
     @NotNull
@@ -95,7 +134,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
 
     @SuppressLint("StaticFieldLeak")
     private class ConnectWithBluetoothDevice extends AsyncTask<Void, Void, Void> {
-        private static final int MAX_WAITING_TIME = 200;
+        private static final int MAX_WAITING_TIME = 100;
         View view;
         String name;
         public ConnectWithBluetoothDevice(View view, String name) {
@@ -122,11 +161,11 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
             BluetoothCommunicationState state = bluetoothService.getState();
             switch (state){
                 case CONNECTED:
-                    Toast.makeText(view.getContext(), "Connected with  " + name, Toast.LENGTH_LONG).show();
+                    Toast.makeText(view.getContext(), "Connected with  " + name, Toast.LENGTH_SHORT).show();
                     clear();
                     break;
                 case DISCONNECTED:
-                    Toast.makeText(view.getContext(), "Connection Failed ", Toast.LENGTH_LONG).show();
+                    Toast.makeText(view.getContext(), "Connection Failed ", Toast.LENGTH_SHORT).show();
                     break;
             }
         }

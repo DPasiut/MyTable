@@ -6,6 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -143,9 +144,16 @@ public class BluetoothFragment extends Fragment {
 
             mBound = true;
 
-            if (bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
-                bluetoothViewAdapter.setData();
-                disconnectButton.setVisibility(View.INVISIBLE);
+            SharedPreferences preferences = getActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+            String deviceName = preferences.getString("deviceName", "");
+
+            if(deviceName != null && !deviceName.equals("")) {
+                bluetoothService.connectDevice(bluetoothService.getDevice(deviceName));
+            } else {
+                if (bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
+                    bluetoothViewAdapter.setData();
+                    disconnectButton.setVisibility(View.INVISIBLE);
+                }
             }
         }
 

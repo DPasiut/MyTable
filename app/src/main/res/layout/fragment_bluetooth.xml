@@ -33,6 +33,11 @@
             android:id="@+id/recyclerview"
             android:layout_width="300dp"
             android:layout_height="400dp"
+            android:scrollbars="vertical"
+            android:scrollbarStyle="insideInset"
+            android:scrollbarSize="10dp"
+            android:scrollbarAlwaysDrawVerticalTrack="true"
+
 
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="true"
