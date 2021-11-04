@@ -34,6 +34,7 @@ public class TableFragment extends Fragment {
     private static final String SECOND_POSITION = "secondPosition";
     private static final String THIRD_POSITION = "thirdPosition";
     private static final String DEFAULT_POSITION_VALUE = "0";
+    private static final Integer MIN_TABLE_POSITION = 70;
 
     protected BluetoothService bluetoothService;
     private boolean mBound = false;
@@ -67,12 +68,12 @@ public class TableFragment extends Fragment {
 
         upButton.setOnTouchListener((v, event) -> {
             if (mBound) {
-                switch(event.getAction()) {
+                switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+                        if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
                             up();
-                        }else {
-                            Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
                         }
                         break;
                     case MotionEvent.ACTION_UP:
@@ -85,12 +86,12 @@ public class TableFragment extends Fragment {
         });
 
         downButton.setOnTouchListener((v, event) -> {
-            switch(event.getAction()) {
+            switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
+                    if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
                         down();
-                    }else {
-                        Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
                     }
                     break;
                 case MotionEvent.ACTION_UP:
@@ -102,21 +103,20 @@ public class TableFragment extends Fragment {
         });
 
         userButton1.setOnClickListener(v -> {
-            if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
-                if(canClick){
-                    canClick = false;
-                    new MoveToPoint(firstPosition).execute();
-                }else {
-                    Toast.makeText(root.getContext(),"Table is moving now", Toast.LENGTH_LONG).show();
+            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
+                canClick = false;
+                new MoveToPoint(firstPosition).execute();
+            } else {
+                if (!canClick) {
+                    Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
                 }
-
-            }else {
-                Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
             }
         });
 
         userButton1.setOnLongClickListener(v -> {
-            if (currentPosition != null){
+            if (currentPosition != null) {
                 firstPosition = currentPosition.toString();
                 savePositionToPreferences(FIRST_POSITION, firstPosition);
                 setButtonText(userButton1, firstPosition);
@@ -128,20 +128,20 @@ public class TableFragment extends Fragment {
         });
 
         userButton2.setOnClickListener(v -> {
-            if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
-                if(canClick){
-                    canClick = false;
-                    new MoveToPoint(secondPosition).execute();
+            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
+                canClick = false;
+                new MoveToPoint(secondPosition).execute();
+            } else {
+                if (!canClick) {
+                    Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
                 } else {
-                    Toast.makeText(root.getContext(),"Table is moving now", Toast.LENGTH_LONG).show();
+                    Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
                 }
-            }else {
-                Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
             }
         });
 
         userButton2.setOnLongClickListener(v -> {
-            if (currentPosition != null){
+            if (currentPosition != null) {
                 secondPosition = currentPosition.toString();
                 savePositionToPreferences(SECOND_POSITION, secondPosition);
                 setButtonText(userButton2, secondPosition);
@@ -153,20 +153,20 @@ public class TableFragment extends Fragment {
         });
 
         userButton3.setOnClickListener(v -> {
-            if(bluetoothService.getState() == BluetoothCommunicationState.CONNECTED){
-                if(canClick){
-                    canClick = false;
-                    new MoveToPoint(thirdPosition).execute();
-                } else {
-                    Toast.makeText(root.getContext(),"Table is moving now", Toast.LENGTH_LONG).show();
-                }
+            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED && canClick) {
+                canClick = false;
+                new MoveToPoint(thirdPosition).execute();
             } else {
-                Toast.makeText(root.getContext(),"No Connection!", Toast.LENGTH_LONG).show();
+                if (!canClick) {
+                    Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
+                }
             }
         });
 
         userButton3.setOnLongClickListener(v -> {
-            if (currentPosition != null){
+            if (currentPosition != null) {
                 thirdPosition = currentPosition.toString();
                 savePositionToPreferences(THIRD_POSITION, thirdPosition);
                 setButtonText(userButton3, thirdPosition);
@@ -182,18 +182,19 @@ public class TableFragment extends Fragment {
 
     }
 
-    private void setButtonText(Button button, String text){
-        button.setText(text);
+    private void setButtonText(Button button, String text) {
+        String s = String.valueOf(MIN_TABLE_POSITION + Integer.parseInt(text) / 14);
+        button.setText(s);
     }
 
     private void savePositionToPreferences(String key, String value) {
-            SharedPreferences sharedPreferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
-            SharedPreferences.Editor myEdit = sharedPreferences.edit();
-            myEdit.putString(key, value);
-            myEdit.apply();
+        SharedPreferences sharedPreferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+        SharedPreferences.Editor myEdit = sharedPreferences.edit();
+        myEdit.putString(key, value);
+        myEdit.apply();
     }
 
-    private void getPreferences(){
+    private void getPreferences() {
         SharedPreferences preferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
         firstPosition = preferences.getString(FIRST_POSITION, DEFAULT_POSITION_VALUE);
         secondPosition = preferences.getString(SECOND_POSITION, DEFAULT_POSITION_VALUE);
@@ -209,7 +210,8 @@ public class TableFragment extends Fragment {
     public void onPause() {
         super.onPause();
     }
-    private void moveToPoint(String s){
+
+    private void moveToPoint(String s) {
         bluetoothService.moveToPoint(s);
     }
 
@@ -236,17 +238,17 @@ public class TableFragment extends Fragment {
                 @SuppressLint("SetTextI18n")
                 @Override
                 public void handleMessage(Message msg) {
-                    if(position != null){
+                    if (position != null) {
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("message");
-                        if(count == 25){
-                            Integer tmp = tableHigh/25;
+                        if (count == 10) {
+                            int tmp = tableHigh / 10;
                             currentPosition = tmp;
-                            position.setText(String.valueOf(tmp));
+                            position.setText(String.valueOf(MIN_TABLE_POSITION + tmp / 14));
                             tableHigh = 0;
                             count = 0;
                         }
-                        if(o != null){
+                        if (o != null) {
                             tableHigh += Integer.parseInt(o);
                             count++;
                         }
@@ -266,16 +268,18 @@ public class TableFragment extends Fragment {
     @SuppressLint("StaticFieldLeak")
     private class MoveToPoint extends AsyncTask<Void, Void, Void> {
         String destinationPosition;
+
         public MoveToPoint(String destinationPosition) {
             this.destinationPosition = destinationPosition;
         }
+
         @Override
         protected Void doInBackground(Void... arg0) {
             try {
+                moveToPoint(destinationPosition);
                 boolean needWait = doesMotorWorking();
-                while (needWait){
-                    moveToPoint(destinationPosition);
-                    Thread.sleep(50);
+                while (needWait) {
+                    Thread.sleep(100);
                     needWait = doesMotorWorking();
                 }
             } catch (InterruptedException e) {
@@ -283,13 +287,14 @@ public class TableFragment extends Fragment {
             }
             return null;
         }
+
         @Override
         protected void onPostExecute(Void result) {
             canClick = true;
         }
 
-        private boolean doesMotorWorking(){
-            return Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 5;
+        private boolean doesMotorWorking() {
+            return Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 14;
         }
     }
     //Asynctasks to save and read values from RoomDatabase

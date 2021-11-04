@@ -126,6 +126,18 @@ public class BluetoothFragment extends Fragment {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             bluetoothService = binder.getService();
 
+            SharedPreferences preferences = getActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+            String deviceName = preferences.getString("deviceName", "");
+
+            if(deviceName != null && !deviceName.equals("")) {
+                bluetoothService.connectDevice(bluetoothService.getDevice(deviceName));
+            } else {
+                if (bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
+                    bluetoothViewAdapter.setData();
+                    disconnectButton.setVisibility(View.INVISIBLE);
+                }
+            }
+
             bluetoothService.setStateHandler(new Handler(Looper.myLooper()) {
                 @Override
                 public void handleMessage(Message msg) {
@@ -143,18 +155,6 @@ public class BluetoothFragment extends Fragment {
             });
 
             mBound = true;
-
-            SharedPreferences preferences = getActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
-            String deviceName = preferences.getString("deviceName", "");
-
-            if(deviceName != null && !deviceName.equals("")) {
-                bluetoothService.connectDevice(bluetoothService.getDevice(deviceName));
-            } else {
-                if (bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
-                    bluetoothViewAdapter.setData();
-                    disconnectButton.setVisibility(View.INVISIBLE);
-                }
-            }
         }
 
         @Override
