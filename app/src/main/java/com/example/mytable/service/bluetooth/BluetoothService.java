@@ -162,6 +162,7 @@ public class BluetoothService extends Service {
         }
 
     }
+
     private Set<BluetoothDevice> getPairedDevices(){
         return bluetoothAdapter.getBondedDevices();
     }
