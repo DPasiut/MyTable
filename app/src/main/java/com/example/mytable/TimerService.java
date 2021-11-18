@@ -26,6 +26,7 @@ public class TimerService extends Service {
     private static final String CHANNEL_ID = "NotificationChannelID";
     private final IBinder binder = new LocalBinder();
     private Handler timerHandler;
+    private Timer timer;
 
     @Nullable
     @Override
@@ -55,25 +56,21 @@ public class TimerService extends Service {
 
     }
     public void startTimer(Integer timerValue) {
-
         final Integer[] timeRemaining = {timerValue};
-        final Timer timer = new Timer();
+        timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-//                Intent intent1local = new Intent();
-//                intent1local.setAction("Counter");
                 timeRemaining[0]--;
                 sendTimerChangedMessage(timeRemaining[0]);
                 NotificationUpdate(timeRemaining[0]);
                 if (timeRemaining[0] <= 0){
                     timer.cancel();
                 }
-//                intent1local.putExtra("TimeRemaining", timeRemaining[0]);
-//                sendBroadcast(intent1local);
             }
         }, 0,1000);
     }
+
 
     public void NotificationUpdate(Integer timeLeft){
         try {

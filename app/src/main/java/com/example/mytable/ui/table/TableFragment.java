@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -20,12 +19,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.NumberPicker;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.mytable.R;
@@ -40,6 +37,7 @@ public class TableFragment extends Fragment {
     private static final String FIRST_POSITION = "firstPosition";
     private static final String SECOND_POSITION = "secondPosition";
     private static final String THIRD_POSITION = "thirdPosition";
+    private static final String MAX_TIMER_VALUE = "maxTimerValue";
     private static final String DEFAULT_POSITION_VALUE = "0";
     private static final Integer MIN_TABLE_POSITION = 70;
 
@@ -53,6 +51,7 @@ public class TableFragment extends Fragment {
     private Boolean canClick = true;
     private Integer currentPosition;
     private Integer currentTimeValue = 0;
+    private Integer maxTimeValue = 0;
 
     private String firstPosition, secondPosition, thirdPosition;
     private CircularProgressIndicator progressBar;
@@ -84,10 +83,12 @@ public class TableFragment extends Fragment {
             builder.setView(view);
 
             builder.setPositiveButton("set", (dialog, which) -> {
-                Integer timeValue = numberPicker.getValue();
-                progressBar.setMaxProgress(timeValue);
-                progressBar.setCurrentProgress(timeValue);
-                currentTimeValue = timeValue;
+                Integer timerValue = numberPicker.getValue();
+                progressBar.setMaxProgress(timerValue);
+                progressBar.setCurrentProgress(timerValue);
+                currentTimeValue = timerValue;
+                maxTimeValue = timerValue;
+                saveToPreferences(MAX_TIMER_VALUE, timerValue.toString());
                 dialog.dismiss();
             });
             builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
@@ -159,7 +160,7 @@ public class TableFragment extends Fragment {
         userButton1.setOnLongClickListener(v -> {
             if (currentPosition != null) {
                 firstPosition = currentPosition.toString();
-                savePositionToPreferences(FIRST_POSITION, firstPosition);
+                saveToPreferences(FIRST_POSITION, firstPosition);
                 setButtonText(userButton1, firstPosition);
                 return true;
             } else {
@@ -184,7 +185,7 @@ public class TableFragment extends Fragment {
         userButton2.setOnLongClickListener(v -> {
             if (currentPosition != null) {
                 secondPosition = currentPosition.toString();
-                savePositionToPreferences(SECOND_POSITION, secondPosition);
+                saveToPreferences(SECOND_POSITION, secondPosition);
                 setButtonText(userButton2, secondPosition);
                 return true;
             } else {
@@ -209,7 +210,7 @@ public class TableFragment extends Fragment {
         userButton3.setOnLongClickListener(v -> {
             if (currentPosition != null) {
                 thirdPosition = currentPosition.toString();
-                savePositionToPreferences(THIRD_POSITION, thirdPosition);
+                saveToPreferences(THIRD_POSITION, thirdPosition);
                 setButtonText(userButton3, thirdPosition);
                 return true;
             } else {
@@ -231,7 +232,7 @@ public class TableFragment extends Fragment {
         button.setText(s);
     }
 
-    private void savePositionToPreferences(String key, String value) {
+    private void saveToPreferences(String key, String value) {
         SharedPreferences sharedPreferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
         SharedPreferences.Editor myEdit = sharedPreferences.edit();
         myEdit.putString(key, value);
@@ -243,6 +244,7 @@ public class TableFragment extends Fragment {
         firstPosition = preferences.getString(FIRST_POSITION, DEFAULT_POSITION_VALUE);
         secondPosition = preferences.getString(SECOND_POSITION, DEFAULT_POSITION_VALUE);
         thirdPosition = preferences.getString(THIRD_POSITION, DEFAULT_POSITION_VALUE);
+        maxTimeValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
     }
 
     @Override
@@ -251,8 +253,10 @@ public class TableFragment extends Fragment {
         getPreferences();
     }
 
+    @Override
     public void onPause() {
         super.onPause();
+
     }
 
     private void moveToPoint(String s) {
@@ -326,10 +330,10 @@ public class TableFragment extends Fragment {
                         Integer timer = Integer.valueOf(o);
 
                         if(timer == 0){
-                            progressBar.setCurrentProgress(timer);
+                            progressBar.setProgress(timer,maxTimeValue);
 
                         }else {
-                            progressBar.setCurrentProgress(timer);
+                            progressBar.setProgress(timer, maxTimeValue);
                         }
                     }
                 }
@@ -343,6 +347,7 @@ public class TableFragment extends Fragment {
             bluetoothService.setBluetoothHandler(null);
         }
     };
+
     @SuppressLint("StaticFieldLeak")
     private class MoveToPoint extends AsyncTask<Void, Void, Void> {
         String destinationPosition;
