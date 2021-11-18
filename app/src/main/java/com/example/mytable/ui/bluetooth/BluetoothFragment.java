@@ -20,7 +20,6 @@ import android.widget.Button;
 import android.widget.Switch;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -129,7 +128,10 @@ public class BluetoothFragment extends Fragment {
             SharedPreferences preferences = getActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
             String deviceName = preferences.getString("deviceName", "");
 
-            if(deviceName != null && !deviceName.equals("")) {
+            if(deviceName != null
+                    && !deviceName.equals("")
+                    && bluetoothService.getState() != BluetoothCommunicationState.CONNECTED
+            ) {
                 bluetoothService.connectDevice(bluetoothService.getDevice(deviceName));
             } else {
                 if (bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){

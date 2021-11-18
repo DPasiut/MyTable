@@ -1,8 +1,10 @@
 package com.example.mytable.ui.table;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -17,6 +19,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.NumberPicker;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,6 +31,7 @@ import com.example.mytable.R;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
+import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
 
 public class TableFragment extends Fragment {
 
@@ -56,6 +61,27 @@ public class TableFragment extends Fragment {
         Button userButton2 = root.findViewById(R.id.user_2);
         Button userButton3 = root.findViewById(R.id.user_3);
         position = root.findViewById(R.id.position);
+        CircularProgressIndicator progressBar = root.findViewById(R.id.time_progress_bar);
+
+
+        progressBar.setOnTouchListener((v, event) -> {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            builder.setTitle("Chose time in minutes");
+            View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
+            NumberPicker numberPicker = (NumberPicker) view.findViewById(R.id.number_picker);
+            numberPicker.setMaxValue(1000);
+            numberPicker.setMinValue(1);
+            builder.setView(view);
+
+            builder.setPositiveButton("set", (dialog, which) -> {
+                progressBar.setMaxProgress(numberPicker.getValue());
+                progressBar.setCurrentProgress(numberPicker.getValue());
+                dialog.dismiss();
+            });
+            builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+            builder.show();
+            return false;
+        });
 
         Intent intent = new Intent(getActivity(), BluetoothService.class);
         requireActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
@@ -297,66 +323,5 @@ public class TableFragment extends Fragment {
             return Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 14;
         }
     }
-    //Asynctasks to save and read values from RoomDatabase
-//    private class UpsertSetting extends AsyncTask<Void, Void, Void> {
-//        AppDatabase appDb;
-//        View view;
-//        String name;
-//        Integer id;
-//
-//        public UpsertSetting(AppDatabase database, View view, String name, Integer id) {
-//            this.appDb = database;
-//            this.view = view;
-//            this.name = name;
-//            this.id = id;
-//        }
-//        @Override
-//        protected Void doInBackground(Void... arg0) {
-//            try {
-//                String tmp = appDb.settingsDao().getValueBySettingId(id);
-//                appDb.settingsDao().updateSettingValueByName(id, String.valueOf(currentPosition));
-//
-//            }catch (Exception e){
-//                appDb.settingsDao().insert(id, name, String.valueOf(currentPosition));
-//            }
-//                return null;
-//        }
-//        @Override
-//        protected void onPostExecute(Void result) {
-//            Toast.makeText(view.getContext(), currentPosition + " cm has been set", Toast.LENGTH_LONG).show();
-//        }
-//
-//    }
 
-
-//    private class GetSetting extends AsyncTask<Void, Void, Void> {
-//        AppDatabase appDb;
-//        View view;
-//        String tmp = null;
-//        Integer id;
-//
-//        public GetSetting(AppDatabase database, View view, Integer id) {
-//            this.appDb = database;
-//            this.view = view;
-//            this.id = id;
-//        }
-//        @Override
-//        protected Void doInBackground(Void... arg0) {
-//            try {
-//                 tmp = appDb.settingsDao().getValueBySettingId(id);
-//            }catch (Exception e){
-//                Log.d("TABLE_FRAGMENT", "something went wrong on GetSetting");
-//            }
-//            return null;
-//        }
-//        @Override
-//        protected void onPostExecute(Void result) {
-//            if (tmp != null){
-//                moveToPoint(tmp);
-//            }else {
-//                Toast.makeText(view.getContext(),"Please long press on button first", Toast.LENGTH_LONG).show();
-//            }
-//
-//        }
-//    }
 }

@@ -122,7 +122,6 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
     };
 
     private void connect(String name, View view){
-        bluetoothService.connectDevice(bluetoothService.getDevice(name));
         new ConnectWithBluetoothDevice(view, name).execute();
     }
     private void saveDeviceName(String key, String value, Context context) {
@@ -143,6 +142,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
         }
         @Override
         protected Void doInBackground(Void... arg0) {
+            bluetoothService.connectDevice(bluetoothService.getDevice(name));
             try {
                 boolean needWait = doNeedWait();
                 int waitingTime = 0;
