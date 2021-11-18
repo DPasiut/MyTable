@@ -25,9 +25,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.mytable.R;
+import com.example.mytable.TimerService;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
@@ -42,14 +44,18 @@ public class TableFragment extends Fragment {
     private static final Integer MIN_TABLE_POSITION = 70;
 
     protected BluetoothService bluetoothService;
+    protected TimerService timerService;
     private boolean mBound = false;
+    private boolean mBoundTimer = false;
     private TextView position;
     private int tableHigh = 0;
     private int count = 0;
     private Boolean canClick = true;
     private Integer currentPosition;
+    private Integer currentTimeValue = 0;
 
     private String firstPosition, secondPosition, thirdPosition;
+    private CircularProgressIndicator progressBar;
 
     @SuppressLint("ClickableViewAccessibility")
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -60,8 +66,12 @@ public class TableFragment extends Fragment {
         Button userButton1 = root.findViewById(R.id.user_1);
         Button userButton2 = root.findViewById(R.id.user_2);
         Button userButton3 = root.findViewById(R.id.user_3);
+        Button startTimer = root.findViewById(R.id.start_button);
+        Button pauseTimer = root.findViewById(R.id.pause_button);
+        Button stopTimer = root.findViewById(R.id.stop_button);
+
         position = root.findViewById(R.id.position);
-        CircularProgressIndicator progressBar = root.findViewById(R.id.time_progress_bar);
+        progressBar = root.findViewById(R.id.time_progress_bar);
 
 
         progressBar.setOnTouchListener((v, event) -> {
@@ -74,8 +84,10 @@ public class TableFragment extends Fragment {
             builder.setView(view);
 
             builder.setPositiveButton("set", (dialog, which) -> {
-                progressBar.setMaxProgress(numberPicker.getValue());
-                progressBar.setCurrentProgress(numberPicker.getValue());
+                Integer timeValue = numberPicker.getValue();
+                progressBar.setMaxProgress(timeValue);
+                progressBar.setCurrentProgress(timeValue);
+                currentTimeValue = timeValue;
                 dialog.dismiss();
             });
             builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
@@ -85,6 +97,9 @@ public class TableFragment extends Fragment {
 
         Intent intent = new Intent(getActivity(), BluetoothService.class);
         requireActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
+        Intent timerIntent = new Intent(getActivity(), TimerService.class);
+        requireActivity().bindService(timerIntent, timerServiceConnection, Context.BIND_AUTO_CREATE);
 
         getPreferences();
 
@@ -203,6 +218,9 @@ public class TableFragment extends Fragment {
             return false;
         });
 
+        startTimer.setOnClickListener(v -> {
+            timerService.startTimer(currentTimeValue);
+        });
         return root;
 
 
@@ -291,6 +309,40 @@ public class TableFragment extends Fragment {
         }
     };
 
+    private final ServiceConnection timerServiceConnection = new ServiceConnection() {
+
+        @SuppressLint("HandlerLeak")
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            TimerService.LocalBinder binder = (TimerService.LocalBinder) service;
+            timerService = binder.getService();
+            timerService.setTimerHandler(new Handler(Looper.myLooper()) {
+                @SuppressLint("SetTextI18n")
+                @Override
+                public void handleMessage(Message msg) {
+                    if (progressBar != null) {
+                        Bundle bundle = msg.getData();
+                        String o = (String) bundle.get("timer");
+                        Integer timer = Integer.valueOf(o);
+
+                        if(timer == 0){
+                            progressBar.setCurrentProgress(timer);
+
+                        }else {
+                            progressBar.setCurrentProgress(timer);
+                        }
+                    }
+                }
+            });
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+            bluetoothService.setBluetoothHandler(null);
+        }
+    };
     @SuppressLint("StaticFieldLeak")
     private class MoveToPoint extends AsyncTask<Void, Void, Void> {
         String destinationPosition;

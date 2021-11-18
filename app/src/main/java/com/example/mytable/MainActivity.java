@@ -45,10 +45,16 @@ public class MainActivity extends AppCompatActivity {
     private void startService() {
         Intent serviceIntent = new Intent(this, BluetoothService.class);
         ContextCompat.startForegroundService(this, serviceIntent);
+
+        Intent timerServiceIntent = new Intent(this, TimerService.class);
+        ContextCompat.startForegroundService(this, timerServiceIntent);
     }
     private void stopService() {
         Intent serviceIntent = new Intent(this, BluetoothService.class);
         stopService(serviceIntent);
+
+        Intent timerServiceIntent = new Intent(this, TimerService.class);
+        stopService(timerServiceIntent);
     }
 
 }
