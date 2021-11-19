@@ -27,6 +27,10 @@ public class TimerService extends Service {
     private final IBinder binder = new LocalBinder();
     private Handler timerHandler;
     private Timer timer;
+    private Integer currentTimeValue = 0;
+    private Integer maxTimeValue = 0;
+    private boolean isTimerOn = false;
+
 
     @Nullable
     @Override
@@ -56,21 +60,28 @@ public class TimerService extends Service {
 
     }
     public void startTimer(Integer timerValue) {
-        final Integer[] timeRemaining = {timerValue};
-        timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                timeRemaining[0]--;
-                sendTimerChangedMessage(timeRemaining[0]);
-                NotificationUpdate(timeRemaining[0]);
-                if (timeRemaining[0] <= 0){
-                    timer.cancel();
+        if (!isTimerOn){
+            isTimerOn = true;
+            final Integer[] timeRemaining = {timerValue};
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    timeRemaining[0]--;
+                    sendTimerChangedMessage(timeRemaining[0]);
+                    NotificationUpdate(timeRemaining[0]);
+                    if (timeRemaining[0] <= 0){
+                        timer.cancel();
+                    }
                 }
-            }
-        }, 0,1000);
+            }, 0,1000);
+        }
     }
 
+    public void stopTimer(){
+        timer.cancel();
+        isTimerOn = false;
+    }
 
     public void NotificationUpdate(Integer timeLeft){
         try {
@@ -91,4 +102,19 @@ public class TimerService extends Service {
             e.printStackTrace();
         }
     }
+
+    public boolean isTimerOn() {
+        return isTimerOn;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
 }

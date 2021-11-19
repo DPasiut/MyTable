@@ -32,14 +32,9 @@ import com.example.mytable.service.bluetooth.BluetoothService;
 
 import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
 
-public class TableFragment extends Fragment {
+import static com.example.mytable.PreferencesConstants.*;
 
-    private static final String FIRST_POSITION = "firstPosition";
-    private static final String SECOND_POSITION = "secondPosition";
-    private static final String THIRD_POSITION = "thirdPosition";
-    private static final String MAX_TIMER_VALUE = "maxTimerValue";
-    private static final String DEFAULT_POSITION_VALUE = "0";
-    private static final Integer MIN_TABLE_POSITION = 70;
+public class TableFragment extends Fragment {
 
     protected BluetoothService bluetoothService;
     protected TimerService timerService;
@@ -222,6 +217,11 @@ public class TableFragment extends Fragment {
         startTimer.setOnClickListener(v -> {
             timerService.startTimer(currentTimeValue);
         });
+
+        pauseTimer.setOnClickListener(v -> {
+            saveToPreferences(CURRENT_TIMER_VALUE, currentTimeValue.toString());
+            timerService.stopTimer();
+        });
         return root;
 
 
@@ -245,6 +245,7 @@ public class TableFragment extends Fragment {
         secondPosition = preferences.getString(SECOND_POSITION, DEFAULT_POSITION_VALUE);
         thirdPosition = preferences.getString(THIRD_POSITION, DEFAULT_POSITION_VALUE);
         maxTimeValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
+        currentTimeValue = Integer.valueOf(preferences.getString(CURRENT_TIMER_VALUE, "0"));
     }
 
     @Override
@@ -327,7 +328,9 @@ public class TableFragment extends Fragment {
                     if (progressBar != null) {
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("timer");
+
                         Integer timer = Integer.valueOf(o);
+                        currentTimeValue = timer;
 
                         if(timer == 0){
                             progressBar.setProgress(timer,maxTimeValue);
@@ -338,13 +341,13 @@ public class TableFragment extends Fragment {
                     }
                 }
             });
-            mBound = true;
+            mBoundTimer = true;
         }
 
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
-            bluetoothService.setBluetoothHandler(null);
+            mBoundTimer = false;
+            timerService.setTimerHandler(null);
         }
     };
 
