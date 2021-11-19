@@ -215,7 +215,9 @@ public class TableFragment extends Fragment {
         });
 
         startTimer.setOnClickListener(v -> {
-            timerService.startTimer(currentTimeValue);
+            if(currentTimeValue > 0){
+                timerService.startTimer(currentTimeValue);
+            }
         });
 
         pauseTimer.setOnClickListener(v -> {
@@ -246,18 +248,6 @@ public class TableFragment extends Fragment {
         thirdPosition = preferences.getString(THIRD_POSITION, DEFAULT_POSITION_VALUE);
         maxTimeValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
         currentTimeValue = Integer.valueOf(preferences.getString(CURRENT_TIMER_VALUE, "0"));
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        getPreferences();
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-
     }
 
     private void moveToPoint(String s) {
@@ -331,13 +321,7 @@ public class TableFragment extends Fragment {
 
                         Integer timer = Integer.valueOf(o);
                         currentTimeValue = timer;
-
-                        if(timer == 0){
-                            progressBar.setProgress(timer,maxTimeValue);
-
-                        }else {
-                            progressBar.setProgress(timer, maxTimeValue);
-                        }
+                        progressBar.setProgress(timer, maxTimeValue);
                     }
                 }
             });
@@ -384,4 +368,15 @@ public class TableFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        getPreferences();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        saveToPreferences(CURRENT_TIMER_VALUE, currentTimeValue.toString());
+    }
 }

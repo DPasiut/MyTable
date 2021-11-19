@@ -27,8 +27,6 @@ public class TimerService extends Service {
     private final IBinder binder = new LocalBinder();
     private Handler timerHandler;
     private Timer timer;
-    private Integer currentTimeValue = 0;
-    private Integer maxTimeValue = 0;
     private boolean isTimerOn = false;
 
 
@@ -72,6 +70,7 @@ public class TimerService extends Service {
                     NotificationUpdate(timeRemaining[0]);
                     if (timeRemaining[0] <= 0){
                         timer.cancel();
+                        isTimerOn = false;
                     }
                 }
             }, 0,1000);
