@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,7 +27,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import com.example.mytable.R;
-import com.example.mytable.TimerService;
+import com.example.mytable.service.time.TimerService;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
@@ -69,34 +70,12 @@ public class TableFragment extends Fragment {
 
 
         progressBar.setOnTouchListener((v, event) -> {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            builder.setTitle("Chose time in minutes");
-            View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
-            NumberPicker numberPicker = (NumberPicker) view.findViewById(R.id.number_picker);
-            numberPicker.setMaxValue(1000);
-            numberPicker.setMinValue(1);
-            builder.setView(view);
-
-            builder.setPositiveButton("set", (dialog, which) -> {
-                Integer timerValue = numberPicker.getValue();
-                progressBar.setMaxProgress(timerValue);
-                progressBar.setCurrentProgress(timerValue);
-                currentTimeValue = timerValue;
-                maxTimeValue = timerValue;
-                saveToPreferences(MAX_TIMER_VALUE, timerValue.toString());
-                dialog.dismiss();
-            });
-            builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
-            builder.show();
+            getTimeDialog();
             return false;
         });
 
-        Intent intent = new Intent(getActivity(), BluetoothService.class);
-        requireActivity().bindService(intent, connection, Context.BIND_AUTO_CREATE);
-
-        Intent timerIntent = new Intent(getActivity(), TimerService.class);
-        requireActivity().bindService(timerIntent, timerServiceConnection, Context.BIND_AUTO_CREATE);
-
+        bindBluetoothService();
+        bindTimerService();
         getPreferences();
 
         setButtonText(userButton1, firstPosition);
@@ -217,18 +196,33 @@ public class TableFragment extends Fragment {
         startTimer.setOnClickListener(v -> {
             if(currentTimeValue > 0){
                 timerService.startTimer(currentTimeValue);
+                setProgressColor();
             }
         });
 
         pauseTimer.setOnClickListener(v -> {
             saveToPreferences(CURRENT_TIMER_VALUE, currentTimeValue.toString());
             timerService.stopTimer();
+            setProgressColor();
+        });
+
+        stopTimer.setOnClickListener(v -> {
+            if (timerService.isTimerOn()){
+                timerService.stopTimer();
+            }
+            resetTimerPreferences();
+            progressBar.setProgress(0,0);
+            setProgressColor();
         });
         return root;
 
 
     }
 
+    private void resetTimerPreferences(){
+        saveToPreferences(MAX_TIMER_VALUE, "0");
+        saveToPreferences(CURRENT_TIMER_VALUE, "0");
+    }
     private void setButtonText(Button button, String text) {
         String s = String.valueOf(MIN_TABLE_POSITION + Integer.parseInt(text) / 14);
         button.setText(s);
@@ -266,7 +260,44 @@ public class TableFragment extends Fragment {
         bluetoothService.stopEngine("w");
     }
 
-    private final ServiceConnection connection = new ServiceConnection() {
+    private void getTimeDialog(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Chose time in minutes");
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
+        NumberPicker hourPicker = (NumberPicker) view.findViewById(R.id.hour_picker);
+        NumberPicker minutesPicker = (NumberPicker) view.findViewById(R.id.minutes_picker);
+        hourPicker.setMaxValue(24);
+        hourPicker.setMinValue(0);
+        minutesPicker.setMinValue(0);
+        minutesPicker.setMaxValue(60);
+        builder.setView(view);
+
+        builder.setPositiveButton("set", (dialog, which) -> {
+            Integer timeInSeconds = timerService.getTimeInSeconds(hourPicker.getValue(), minutesPicker.getValue());
+            Integer timeInMinutes = timerService.getTimeInMinutes(hourPicker.getValue(), minutesPicker.getValue());
+
+            progressBar.setMaxProgress(timeInMinutes);
+            progressBar.setCurrentProgress(timeInMinutes);
+            maxTimeValue = timeInMinutes;
+            currentTimeValue = timeInSeconds;
+
+            saveToPreferences(MAX_TIMER_VALUE, timeInMinutes.toString());
+            dialog.dismiss();
+        });
+        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void bindTimerService(){
+        Intent timerIntent = new Intent(getActivity(), TimerService.class);
+        requireActivity().bindService(timerIntent, timerServiceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void bindBluetoothService(){
+        Intent timerIntent = new Intent(getActivity(), BluetoothService.class);
+        requireActivity().bindService(timerIntent, bluetoothSerciceConnection, Context.BIND_AUTO_CREATE);
+    }
+    private final ServiceConnection bluetoothSerciceConnection = new ServiceConnection() {
 
         @SuppressLint("HandlerLeak")
         @Override
@@ -319,12 +350,16 @@ public class TableFragment extends Fragment {
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("timer");
 
-                        Integer timer = Integer.valueOf(o);
-                        currentTimeValue = timer;
+                        //aktualna wartość zapamiętywana w sekundach
+                        currentTimeValue = Integer.parseInt(o);
+
+                        //progres ustawiany w minutach
+                        Integer timer = parseToMinutes(Integer.parseInt(o));
                         progressBar.setProgress(timer, maxTimeValue);
                     }
                 }
             });
+            setProgressColor();
             mBoundTimer = true;
         }
 
@@ -334,6 +369,10 @@ public class TableFragment extends Fragment {
             timerService.setTimerHandler(null);
         }
     };
+
+    private Integer parseToMinutes(Integer time){
+        return time/60;
+    }
 
     @SuppressLint("StaticFieldLeak")
     private class MoveToPoint extends AsyncTask<Void, Void, Void> {
@@ -368,10 +407,21 @@ public class TableFragment extends Fragment {
         }
     }
 
+
+    private void setProgressColor(){
+        if(timerService.isTimerOn()){
+            progressBar.setTextColor(Color.parseColor(TimerService.getPlayProgressColor()));
+            progressBar.setProgressColor(Color.parseColor(TimerService.getPlayProgressColor()));
+        }else {
+            progressBar.setTextColor(Color.parseColor(TimerService.getDefaultProgressColor()));
+            progressBar.setProgressColor(Color.parseColor(TimerService.getDefaultProgressColor()));
+        }
+    }
     @Override
     public void onResume() {
         super.onResume();
         getPreferences();
+        progressBar.setProgress(currentTimeValue/60,maxTimeValue);
     }
 
     @Override

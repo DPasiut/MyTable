@@ -9,12 +9,44 @@
         android:layout_height="match_parent"
         android:gravity="center_horizontal">
 
-        <NumberPicker
-            android:layout_width="200dp"
-            android:layout_height="150dp"
-            android:id="@+id/number_picker"
-            >
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
 
-        </NumberPicker>
+            <NumberPicker
+                android:id="@+id/hour_picker"
+                android:layout_width="150dp"
+                android:layout_height="150dp" />
+
+            <TextView
+                android:text="Hour"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center">
+            </TextView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <NumberPicker
+                android:id="@+id/minutes_picker"
+                android:layout_width="150dp"
+                android:layout_height="150dp"/>
+
+            <TextView
+                android:text="Minutes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center">
+            </TextView>
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>
