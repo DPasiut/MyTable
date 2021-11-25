@@ -1,8 +1,6 @@
 package com.example.mytable.service.time;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -21,13 +19,10 @@ import com.example.mytable.R;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
-
 public class TimerService extends Service {
 
     private static final String CHANNEL_ID = "NotificationChannelID";
-    private static final String DEFAULT_PROGRESS_COLOR = "#3F51B5";
-    private static final String PLAY_PROGRESS_COLOR = "#027602";
+
     private final IBinder binder = new LocalBinder();
     private Handler timerHandler;
     private Timer timer;
@@ -70,7 +65,7 @@ public class TimerService extends Service {
                 public void run() {
                     timeRemaining[0]--;
                     sendTimerChangedMessage(timeRemaining[0]);
-                    NotificationUpdate(timeRemaining[0]);
+//                    NotificationUpdate(timeRemaining[0]);
                     if (timeRemaining[0] <= 0){
                         timer.cancel();
                         isTimerOn = false;
@@ -105,33 +100,15 @@ public class TimerService extends Service {
         }
     }
 
-    public Integer getTimeInSeconds(Integer hour, Integer minutes){
-        if (hour == 0 && minutes == 0){
-            return 0;
-        }
-        if (hour == 0 && minutes > 0){
-            return minutes * 60;
-        }
-        return hour * 3600 + minutes * 60;
+
+    public Integer convertTimeToSeconds(int hours, int minutes, int seconds) {
+        return hours * 3600 + minutes * 60 + seconds;
     }
 
-    public Integer getTimeInMinutes(Integer hour, Integer minutes){
-        if (hour == 0 && minutes == 0){
-            return 0;
-        }
-        if (hour == 0 && minutes > 0){
-            return minutes;
-        }
-        return hour * 60 + minutes;
+    public Integer convertTimeToMinutes(int hour, int minutes, int seconds) {
+        return hour * 60 + minutes + seconds / 60;
     }
 
-    public static String getDefaultProgressColor() {
-        return DEFAULT_PROGRESS_COLOR;
-    }
-
-    public static String getPlayProgressColor() {
-        return PLAY_PROGRESS_COLOR;
-    }
 
     public boolean isTimerOn() {
         return isTimerOn;
