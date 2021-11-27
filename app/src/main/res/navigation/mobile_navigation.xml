@@ -11,11 +11,11 @@
         android:label="@string/title_table"
         tools:layout="@layout/fragment_table" />
 
-    <fragment
-        android:id="@+id/navigation_dashboard"
-        android:name="com.example.mytable.ui.bluetooth.BluetoothFragment"
-        android:label="@string/title_bluetooth"
-        tools:layout="@layout/fragment_bluetooth" />
+<!--    <fragment-->
+<!--        android:id="@+id/navigation_dashboard"-->
+<!--        android:name="com.example.mytable.ui.bluetooth.BluetoothFragment"-->
+<!--        android:label="@string/title_bluetooth"-->
+<!--        tools:layout="@layout/fragment_bluetooth" />-->
 
     <fragment
         android:id="@+id/navigation_notifications"

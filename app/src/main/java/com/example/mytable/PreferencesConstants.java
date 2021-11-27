@@ -13,5 +13,7 @@ public class PreferencesConstants {
     public static final Integer MIN_TABLE_POSITION = 70;
 
     public static final String DEFAULT_PROGRESS_COLOR = "#3F51B5";
-    public static final String PLAY_PROGRESS_COLOR = "#027602";
+    public static final String PLAY_PROGRESS_COLOR = "#01570e";
+    public static final String BLUETOOTH_OFF_COLOR = "#FF0000";
+    public static final String BLUETOOTH_ON_COLOR = "#008000";
 }

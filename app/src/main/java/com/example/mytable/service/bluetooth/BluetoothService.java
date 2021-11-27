@@ -35,6 +35,7 @@ public class BluetoothService extends Service {
 
     private BluetoothConnectionThread connectionThread;
     private BluetoothCommunicationState state;
+    private boolean isBluetoothOn;
     private final BluetoothAdapter bluetoothAdapter;
     private Handler bluetoothHandler;
     private Handler stateHandler;
@@ -43,6 +44,7 @@ public class BluetoothService extends Service {
     public BluetoothService() {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         state = BluetoothCommunicationState.DISCONNECTED;
+        isBluetoothOn = bluetoothAdapter.isEnabled();
     }
 
     public BluetoothDevice getDevice(String name) {
@@ -122,12 +124,14 @@ public class BluetoothService extends Service {
     }
 
     public boolean isBluetoothOn(){
-        return bluetoothAdapter.isEnabled();
+        return isBluetoothOn;
     }
 
     public void enableBluetooth(){
         try {
             bluetoothAdapter.enable();
+            isBluetoothOn = true;
+            sendStateChangedMessage();
         }catch (Exception e){
             Log.d(TAG, "Something went wrong on Bluetooth enable");
         }
@@ -137,6 +141,8 @@ public class BluetoothService extends Service {
         try {
             stopConnectionThread();
             bluetoothAdapter.disable();
+            isBluetoothOn = false;
+            sendStateChangedMessage();
 
         }catch (Exception e){
             Log.d(TAG, "Something went wrong on Bluetooth disable");

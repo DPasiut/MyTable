@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.example.mytable.service.bluetooth.BluetoothService;
@@ -14,6 +15,9 @@ import com.example.mytable.service.time.TimerService;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
+
+    Intent serviceIntent;
+    Intent timerServiceIntent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,24 +37,23 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        startService();
+       // startService();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        stopService();
+       // stopService();
     }
 
     private void startService() {
-        Intent serviceIntent = new Intent(this, BluetoothService.class);
+        serviceIntent = new Intent(this, BluetoothService.class);
         ContextCompat.startForegroundService(this, serviceIntent);
 
         Intent timerServiceIntent = new Intent(this, TimerService.class);
         ContextCompat.startForegroundService(this, timerServiceIntent);
     }
     private void stopService() {
-        Intent serviceIntent = new Intent(this, BluetoothService.class);
         stopService(serviceIntent);
 
         Intent timerServiceIntent = new Intent(this, TimerService.class);

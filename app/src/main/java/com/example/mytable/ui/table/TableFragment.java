@@ -14,22 +14,28 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mytable.R;
 import com.example.mytable.service.time.TimerService;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
+import com.example.mytable.ui.bluetooth.BluetoothViewAdapter;
+import com.example.mytable.ui.bluetooth.SetBluetoothDevicesList;
 
 import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
 
@@ -48,35 +54,56 @@ public class TableFragment extends Fragment {
     private Integer currentPosition;
     private Integer currentTimeValue = 0;
     private Integer maxTimeValue = 0;
+    private boolean isDialogDisplayed = false;
 
     private String firstPosition, secondPosition, thirdPosition;
     private CircularProgressIndicator progressBar;
 
-    @SuppressLint("ClickableViewAccessibility")
+    private BluetoothViewAdapter bluetoothViewAdapter;
+
+    ImageButton bluetoothButton;
+
+    @SuppressLint({"ClickableViewAccessibility", "UseCompatLoadingForDrawables"})
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
+
         View root = inflater.inflate(R.layout.fragment_table, container, false);
+
         Button upButton = root.findViewById(R.id.up_btn);
         Button downButton = root.findViewById(R.id.down_btn);
         Button userButton1 = root.findViewById(R.id.user_1);
         Button userButton2 = root.findViewById(R.id.user_2);
         Button userButton3 = root.findViewById(R.id.user_3);
         Button startTimer = root.findViewById(R.id.start_button);
-        Button pauseTimer = root.findViewById(R.id.pause_button);
         Button stopTimer = root.findViewById(R.id.stop_button);
+        bluetoothButton = root.findViewById(R.id.bluetooth_button);
 
         position = root.findViewById(R.id.position);
         progressBar = root.findViewById(R.id.time_progress_bar);
 
 
         progressBar.setOnTouchListener((v, event) -> {
-            getTimeDialog();
+            showTimeDialog();
             return false;
         });
 
         bindBluetoothService();
         bindTimerService();
         getPreferences();
+
+        bluetoothButton.setOnTouchListener((v, event) -> {
+            if(!isDialogDisplayed){
+                if(bluetoothService.isBluetoothOn()){
+                    showDevicesListDialog(inflater, container);
+                }
+                else {
+                    showEnableBluetoothDialog();
+                }
+                isDialogDisplayed = true;
+                return false;
+            }
+            return false;
+        });
 
         setButtonText(userButton1, firstPosition);
         setButtonText(userButton2, secondPosition);
@@ -100,7 +127,6 @@ public class TableFragment extends Fragment {
             }
             return true;
         });
-
         downButton.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
@@ -130,7 +156,6 @@ public class TableFragment extends Fragment {
                 }
             }
         });
-
         userButton1.setOnLongClickListener(v -> {
             if (currentPosition != null) {
                 firstPosition = currentPosition.toString();
@@ -142,7 +167,6 @@ public class TableFragment extends Fragment {
             }
             return false;
         });
-
         userButton2.setOnClickListener(v -> {
             if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
                 canClick = false;
@@ -155,7 +179,6 @@ public class TableFragment extends Fragment {
                 }
             }
         });
-
         userButton2.setOnLongClickListener(v -> {
             if (currentPosition != null) {
                 secondPosition = currentPosition.toString();
@@ -167,7 +190,6 @@ public class TableFragment extends Fragment {
             }
             return false;
         });
-
         userButton3.setOnClickListener(v -> {
             if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED && canClick) {
                 canClick = false;
@@ -180,7 +202,6 @@ public class TableFragment extends Fragment {
                 }
             }
         });
-
         userButton3.setOnLongClickListener(v -> {
             if (currentPosition != null) {
                 thirdPosition = currentPosition.toString();
@@ -194,16 +215,18 @@ public class TableFragment extends Fragment {
         });
 
         startTimer.setOnClickListener(v -> {
-            if (currentTimeValue > 0) {
+            boolean isTimerOn = timerService.isTimerOn();
+            if (currentTimeValue > 0 && !isTimerOn) {
                 timerService.startTimer(currentTimeValue);
                 setProgressColor();
+                startTimer.setBackground(requireContext().getDrawable(R.drawable.pause_circle));
             }
-        });
-
-        pauseTimer.setOnClickListener(v -> {
-            saveToPreferences(CURRENT_TIMER_VALUE, currentTimeValue.toString());
-            timerService.stopTimer();
-            setProgressColor();
+            if (isTimerOn) {
+                saveToPreferences(CURRENT_TIMER_VALUE, currentTimeValue.toString());
+                timerService.stopTimer();
+                startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
+                setProgressColor();
+            }
         });
 
         stopTimer.setOnClickListener(v -> {
@@ -212,10 +235,25 @@ public class TableFragment extends Fragment {
             resetTimerPreferences();
             progressBar.setProgress(0, 0);
             setProgressColor();
+            startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
         });
+
         return root;
 
 
+    }
+
+    @SuppressLint("UseCompatLoadingForDrawables")
+    private void setBluetoothButtonColor() {
+        if (bluetoothService.isBluetoothOn()) {
+            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
+                bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_connected));
+            } else {
+                bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_on));
+            }
+        } else {
+            bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_off));
+        }
     }
 
     private void resetTimerPreferences() {
@@ -260,7 +298,58 @@ public class TableFragment extends Fragment {
         bluetoothService.stopEngine("w");
     }
 
-    private void getTimeDialog() {
+    private void showDevicesListDialog(LayoutInflater inflater, ViewGroup container){
+        bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
+        View devicesView = inflater.inflate(R.layout.get_devices_dialog, container, false);
+
+        RecyclerView recyclerView = devicesView.findViewById(R.id.recyclerview);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setAdapter(bluetoothViewAdapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(devicesView.getContext()));
+        SetBluetoothDevicesList setBluetoothDevicesList = new SetBluetoothDevicesList(recyclerView, devicesView, bluetoothService);
+        setBluetoothDevicesList.execute();
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Select device");
+        builder.setView(devicesView);
+
+
+        builder.setNegativeButton("Back", (dialog, which) -> {
+            isDialogDisplayed=false;
+            dialog.cancel();
+        });
+
+        builder.setNeutralButton("Disable BT", (dialog, which) -> {
+            bluetoothService.disableBluetooth();
+            isDialogDisplayed=false;
+            dialog.cancel();
+        });
+        if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
+            builder.setNeutralButton("Disconnect", (dialog, which) -> {
+                isDialogDisplayed=false;
+                bluetoothService.disconnect();
+                dialog.cancel();
+            });
+        }
+
+        builder.show();
+    }
+
+    private void showEnableBluetoothDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Enable Bluetooth?");
+        builder.setNegativeButton("NO", (dialog, which) -> {
+            isDialogDisplayed=false;
+            dialog.cancel();
+        });
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            isDialogDisplayed=false;
+            bluetoothService.enableBluetooth();
+            dialog.cancel();
+        });
+        builder.show();
+    }
+    private void showTimeDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Chose time in minutes");
         View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
@@ -289,27 +378,29 @@ public class TableFragment extends Fragment {
     }
 
     private void bindTimerService() {
-        Intent timerIntent = new Intent(getActivity(), TimerService.class);
-        requireActivity().bindService(timerIntent, timerServiceConnection, Context.BIND_AUTO_CREATE);
+        Intent intent = new Intent(getActivity(), TimerService.class);
+        requireActivity().bindService(intent, timerServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void bindBluetoothService() {
-        Intent timerIntent = new Intent(getActivity(), BluetoothService.class);
-        requireActivity().bindService(timerIntent, bluetoothServiceConnection, Context.BIND_AUTO_CREATE);
+        Intent intent = new Intent(getActivity(), BluetoothService.class);
+        requireActivity().bindService(intent, bluetoothServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     private final ServiceConnection bluetoothServiceConnection = new ServiceConnection() {
-
         @SuppressLint("HandlerLeak")
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             bluetoothService = binder.getService();
+            setBluetoothButtonColor();
+
             bluetoothService.setBluetoothHandler(new Handler(Looper.myLooper()) {
                 @SuppressLint("SetTextI18n")
                 @Override
                 public void handleMessage(Message msg) {
                     if (position != null) {
+                        Log.d("[TABLE FRAGMENT]", " BLUETOOTH HANDLE MESSAGE");
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("message");
                         if (count == 10) {
@@ -326,6 +417,29 @@ public class TableFragment extends Fragment {
                     }
                 }
             });
+
+            bluetoothService.setStateHandler(new Handler(Looper.myLooper()) {
+                @SuppressLint("UseCompatLoadingForDrawables")
+                @Override
+                public void handleMessage(Message msg) {
+                    Bundle bundle = msg.getData();
+                    String connectionState = (String) bundle.get("state");
+
+                    switch (connectionState) {
+                        case "CONNECTED":
+                            bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_connected));
+                            break;
+                        case "DISCONNECTED":
+                            if (bluetoothService.isBluetoothOn()) {
+                                bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_on));
+                            } else {
+                                bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_off));
+                            }
+                            break;
+                    }
+                }
+            });
+
             mBound = true;
         }
 
@@ -337,7 +451,6 @@ public class TableFragment extends Fragment {
     };
 
     private final ServiceConnection timerServiceConnection = new ServiceConnection() {
-
         @SuppressLint("HandlerLeak")
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -348,6 +461,7 @@ public class TableFragment extends Fragment {
                 @Override
                 public void handleMessage(Message msg) {
                     if (progressBar != null) {
+                        Log.d("[TABLE FRAGMENT]", " TIMER HANDLE MESSAGE");
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("timer");
 
@@ -404,7 +518,6 @@ public class TableFragment extends Fragment {
             return Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 14;
         }
     }
-
 
     private void setProgressColor() {
         if (timerService.isTimerOn()) {

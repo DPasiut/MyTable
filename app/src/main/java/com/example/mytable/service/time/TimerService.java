@@ -44,7 +44,7 @@ public class TimerService extends Service {
         this.timerHandler = stateHandler;
     }
 
-    private synchronized void sendTimerChangedMessage(Integer integer){
+    protected synchronized void sendTimerChangedMessage(Integer integer){
         if (timerHandler != null){
             Message msg = timerHandler.obtainMessage();
             Bundle bundle = new Bundle();
@@ -117,11 +117,19 @@ public class TimerService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        stopTimer();
+        timerHandler = null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId){
+        return START_NOT_STICKY;
     }
 
 }
