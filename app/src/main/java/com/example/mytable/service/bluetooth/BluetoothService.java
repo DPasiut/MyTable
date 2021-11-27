@@ -214,17 +214,17 @@ public class BluetoothService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        String input = intent.getStringExtra("inputExtra");
-        createNotificationChannel();
-        Intent notificationIntent = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                0, notificationIntent, 0);
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Foreground Service")
-                .setContentText(input)
-                .setContentIntent(pendingIntent)
-                .build();
-        startForeground(1, notification);
+//        String input = intent.getStringExtra("inputExtra");
+//        createNotificationChannel();
+//        Intent notificationIntent = new Intent(this, MainActivity.class);
+//        PendingIntent pendingIntent = PendingIntent.getActivity(this,
+//                0, notificationIntent, 0);
+//        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+//                .setContentTitle("Foreground Service")
+//                .setContentText(input)
+//                .setContentIntent(pendingIntent)
+//                .build();
+//        startForeground(1, notification);
         //do heavy work on a background thread
         //stopSelf();
         return START_NOT_STICKY;

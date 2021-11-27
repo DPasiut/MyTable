@@ -31,15 +31,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mytable.R;
-import com.example.mytable.service.time.TimerService;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
+import com.example.mytable.service.time.TimerService;
 import com.example.mytable.ui.bluetooth.BluetoothViewAdapter;
 import com.example.mytable.ui.bluetooth.SetBluetoothDevicesList;
 
 import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
 
-import static com.example.mytable.PreferencesConstants.*;
+import static com.example.mytable.PreferencesConstants.CURRENT_TIMER_VALUE;
+import static com.example.mytable.PreferencesConstants.DEFAULT_POSITION_VALUE;
+import static com.example.mytable.PreferencesConstants.DEFAULT_PROGRESS_COLOR;
+import static com.example.mytable.PreferencesConstants.FIRST_POSITION;
+import static com.example.mytable.PreferencesConstants.MAX_TIMER_VALUE;
+import static com.example.mytable.PreferencesConstants.MIN_TABLE_POSITION;
+import static com.example.mytable.PreferencesConstants.PLAY_PROGRESS_COLOR;
+import static com.example.mytable.PreferencesConstants.SECOND_POSITION;
+import static com.example.mytable.PreferencesConstants.THIRD_POSITION;
 
 public class TableFragment extends Fragment {
 
@@ -52,16 +60,20 @@ public class TableFragment extends Fragment {
     private int count = 0;
     private Boolean canClick = true;
     private Integer currentPosition;
-    private Integer currentTimeValue = 0;
-    private Integer maxTimeValue = 0;
+    private Integer timeLeft = 0;
+    private Integer timeMaxValue = 0;
     private boolean isDialogDisplayed = false;
+    private boolean isTimeDialogDisplayed = false;
 
     private String firstPosition, secondPosition, thirdPosition;
     private CircularProgressIndicator progressBar;
 
     private BluetoothViewAdapter bluetoothViewAdapter;
 
+    Button startTimer;
+    Button stopTimer;
     ImageButton bluetoothButton;
+
 
     @SuppressLint({"ClickableViewAccessibility", "UseCompatLoadingForDrawables"})
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -74,8 +86,8 @@ public class TableFragment extends Fragment {
         Button userButton1 = root.findViewById(R.id.user_1);
         Button userButton2 = root.findViewById(R.id.user_2);
         Button userButton3 = root.findViewById(R.id.user_3);
-        Button startTimer = root.findViewById(R.id.start_button);
-        Button stopTimer = root.findViewById(R.id.stop_button);
+        startTimer = root.findViewById(R.id.start_button);
+        stopTimer = root.findViewById(R.id.stop_button);
         bluetoothButton = root.findViewById(R.id.bluetooth_button);
 
         position = root.findViewById(R.id.position);
@@ -83,7 +95,7 @@ public class TableFragment extends Fragment {
 
 
         progressBar.setOnTouchListener((v, event) -> {
-            showTimeDialog();
+            showSetTimeDialog();
             return false;
         });
 
@@ -216,13 +228,13 @@ public class TableFragment extends Fragment {
 
         startTimer.setOnClickListener(v -> {
             boolean isTimerOn = timerService.isTimerOn();
-            if (currentTimeValue > 0 && !isTimerOn) {
-                timerService.startTimer(currentTimeValue);
+            if (timeLeft > 0 && !isTimerOn) {
+                timerService.startTimer(timeLeft, getContext());
                 setProgressColor();
                 startTimer.setBackground(requireContext().getDrawable(R.drawable.pause_circle));
             }
             if (isTimerOn) {
-                saveToPreferences(CURRENT_TIMER_VALUE, currentTimeValue.toString());
+                saveToPreferences(CURRENT_TIMER_VALUE, timeLeft.toString());
                 timerService.stopTimer();
                 startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
                 setProgressColor();
@@ -231,11 +243,12 @@ public class TableFragment extends Fragment {
 
         stopTimer.setOnClickListener(v -> {
             timerService.stopTimer();
-            currentTimeValue = 0;
+            timeLeft = 0;
             resetTimerPreferences();
             progressBar.setProgress(0, 0);
             setProgressColor();
             startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
+            timerService.cancelAlarm();
         });
 
         return root;
@@ -278,8 +291,8 @@ public class TableFragment extends Fragment {
         firstPosition = preferences.getString(FIRST_POSITION, DEFAULT_POSITION_VALUE);
         secondPosition = preferences.getString(SECOND_POSITION, DEFAULT_POSITION_VALUE);
         thirdPosition = preferences.getString(THIRD_POSITION, DEFAULT_POSITION_VALUE);
-        maxTimeValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
-        currentTimeValue = Integer.valueOf(preferences.getString(CURRENT_TIMER_VALUE, "0"));
+        timeMaxValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
+        timeLeft = Integer.valueOf(preferences.getString(CURRENT_TIMER_VALUE, "0"));
     }
 
     private void moveToPoint(String s) {
@@ -349,7 +362,8 @@ public class TableFragment extends Fragment {
         });
         builder.show();
     }
-    private void showTimeDialog() {
+
+    private void showSetTimeDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Chose time in minutes");
         View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
@@ -367,13 +381,38 @@ public class TableFragment extends Fragment {
 
             progressBar.setMaxProgress(timeInMinutes);
             progressBar.setCurrentProgress(timeInMinutes);
-            maxTimeValue = timeInMinutes;
-            currentTimeValue = timeInSeconds;
+            timeMaxValue = timeInMinutes;
+            timeLeft = timeInSeconds;
 
             saveToPreferences(MAX_TIMER_VALUE, timeInMinutes.toString());
             dialog.dismiss();
         });
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    @SuppressLint("UseCompatLoadingForDrawables")
+    private void showTimesUpDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Times's Up. Would you like repeat interval?");
+        builder.setNegativeButton("NO", (dialog, which) -> {
+            startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
+            timerService.cancelAlarm();
+            isTimeDialogDisplayed=false;
+            dialog.cancel();
+        });
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            isTimeDialogDisplayed=false;
+            timerService.cancelAlarm();
+            progressBar.setProgress(timeMaxValue, timeMaxValue);
+            timerService.startTimer(timerService.convertTimeToSeconds(0,timeMaxValue,0),getContext());
+            dialog.cancel();
+        });
+        builder.setNeutralButton("stop alarm", (dialog, which) -> {
+            timerService.cancelAlarm();
+            dialog.cancel();
+            isTimeDialogDisplayed = false;
+        });
         builder.show();
     }
 
@@ -461,16 +500,16 @@ public class TableFragment extends Fragment {
                 @Override
                 public void handleMessage(Message msg) {
                     if (progressBar != null) {
-                        Log.d("[TABLE FRAGMENT]", " TIMER HANDLE MESSAGE");
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("timer");
-
+                        Log.d("Timer Service", "Update ProgressBar");
                         //aktualna wartość zapamiętywana w sekundach
-                        currentTimeValue = Integer.parseInt(o);
-
-                        //progres ustawiany w minutach
-                        Integer timer = timerService.convertTimeToMinutes(0, 0, Integer.parseInt(o));
-                        progressBar.setProgress(timer, maxTimeValue);
+                        timeLeft = Integer.parseInt(o);
+                        timerService.setTimerProgress(progressBar, timeLeft, timeMaxValue);
+                        if(timeLeft < 1){
+                            showTimesUpDialog();
+                            isTimeDialogDisplayed = true;
+                        }
                     }
                 }
             });
@@ -533,12 +572,12 @@ public class TableFragment extends Fragment {
     public void onResume() {
         super.onResume();
         getPreferences();
-        progressBar.setProgress(currentTimeValue / 60, maxTimeValue);
+        progressBar.setProgress(timeLeft / 60, timeMaxValue);
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        saveToPreferences(CURRENT_TIMER_VALUE, currentTimeValue.toString());
+        saveToPreferences(CURRENT_TIMER_VALUE, timeLeft.toString());
     }
 }
