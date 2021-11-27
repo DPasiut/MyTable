@@ -344,7 +344,6 @@ public class TableFragment extends Fragment {
                 dialog.cancel();
             });
         }
-
         builder.show();
     }
 
