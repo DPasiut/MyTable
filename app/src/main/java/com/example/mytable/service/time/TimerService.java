@@ -1,9 +1,5 @@
 package com.example.mytable.service.time;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -17,11 +13,6 @@ import android.os.IBinder;
 import android.os.Message;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-
-import com.example.mytable.R;
-import com.example.mytable.ui.table.TableFragment;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -92,12 +83,9 @@ public class TimerService extends Service {
                     if(timeRemaining[0] < 60){
                         sendTimerChangedMessage(timeRemaining[0]);
                     }
-//                    NotificationUpdate(timeRemaining[0]);
                     if (timeRemaining[0] <= 0) {
                         timer.cancel();
-                        isTimerOn = false;
-                        NotificationUpdate();
-                        startAlarm(context);
+                        isTimerOn = false;startAlarm(context);
                     }
                 }
             }, 0, 100);
@@ -155,22 +143,4 @@ public class TimerService extends Service {
         return START_NOT_STICKY;
     }
 
-    public void NotificationUpdate(){
-        try {
-            Intent notificationIntent = new Intent(this, TableFragment.class);
-            final PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-            final Notification[] notification = {new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("Time's up!")
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentIntent(pendingIntent)
-                    .build()};
-            startForeground(1, notification[0]);
-            NotificationChannel notificationChannel = new NotificationChannel(CHANNEL_ID, "My Counter Service", NotificationManager.IMPORTANCE_DEFAULT);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(notificationChannel);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }

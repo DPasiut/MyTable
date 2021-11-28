@@ -59,8 +59,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:textSize="60sp"
-                    android:text="000">
+                    android:textSize="60sp">
 
                 </TextView>
             </LinearLayout>

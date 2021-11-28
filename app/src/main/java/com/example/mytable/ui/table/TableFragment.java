@@ -31,7 +31,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mytable.R;
-import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 import com.example.mytable.service.time.TimerService;
 import com.example.mytable.ui.bluetooth.BluetoothViewAdapter;
@@ -39,20 +38,12 @@ import com.example.mytable.ui.bluetooth.SetBluetoothDevicesList;
 
 import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
 
-import static com.example.mytable.PreferencesConstants.CURRENT_TIMER_VALUE;
-import static com.example.mytable.PreferencesConstants.DEFAULT_POSITION_VALUE;
-import static com.example.mytable.PreferencesConstants.DEFAULT_PROGRESS_COLOR;
-import static com.example.mytable.PreferencesConstants.FIRST_POSITION;
-import static com.example.mytable.PreferencesConstants.MAX_TIMER_VALUE;
-import static com.example.mytable.PreferencesConstants.MIN_TABLE_POSITION;
-import static com.example.mytable.PreferencesConstants.PLAY_PROGRESS_COLOR;
-import static com.example.mytable.PreferencesConstants.SECOND_POSITION;
-import static com.example.mytable.PreferencesConstants.THIRD_POSITION;
+import static com.example.mytable.PreferencesConstants.*;
 
 public class TableFragment extends Fragment {
 
-    protected BluetoothService bluetoothService;
-    protected TimerService timerService;
+    private BluetoothService bluetoothService;
+    private TimerService timerService;
     private boolean mBound = false;
     private boolean mBoundTimer = false;
     private TextView position;
@@ -68,14 +59,13 @@ public class TableFragment extends Fragment {
     private String firstPosition, secondPosition, thirdPosition;
     private CircularProgressIndicator progressBar;
 
-    private BluetoothViewAdapter bluetoothViewAdapter;
-
     Button startTimer;
     Button stopTimer;
     ImageButton bluetoothButton;
 
 
-    @SuppressLint({"ClickableViewAccessibility", "UseCompatLoadingForDrawables"})
+
+    @SuppressLint("ClickableViewAccessibility")
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
 
@@ -100,50 +90,97 @@ public class TableFragment extends Fragment {
         });
 
         bindBluetoothService();
-        bindTimerService();
+//        bindTimerService();
         getPreferences();
 
-        bluetoothButton.setOnTouchListener((v, event) -> {
-            if(!isDialogDisplayed){
-                if(bluetoothService.isBluetoothOn()){
-                    showDevicesListDialog(inflater, container);
-                }
-                else {
-                    showEnableBluetoothDialog();
-                }
-                isDialogDisplayed = true;
-                return false;
-            }
-            return false;
-        });
+        bluetoothButton.setOnTouchListener((v, event) -> onBluetoothButtonTouch(inflater, container));
 
         setButtonText(userButton1, firstPosition);
         setButtonText(userButton2, secondPosition);
         setButtonText(userButton3, thirdPosition);
 
-        upButton.setOnTouchListener((v, event) -> {
-            if (mBound) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
-                            up();
-                        } else {
-                            Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
-                        }
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        stop();
-                        break;
-                }
-            }
+        upButton.setOnTouchListener((v, event) -> onUpButtonTouch(root, event));
+        downButton.setOnTouchListener((v, event) -> onDownButtonTouch(root, event));
+
+        userButton1.setOnClickListener(v -> onUserButtonClick(root, firstPosition));
+        userButton1.setOnLongClickListener(v -> onUserButtonLongClick(root, userButton1, FIRST_POSITION));
+
+        userButton2.setOnClickListener(v -> onUserButtonClick(root, secondPosition));
+        userButton2.setOnLongClickListener(v -> onUserButtonLongClick(root, userButton2, SECOND_POSITION));
+
+        userButton3.setOnClickListener(v -> onUserButtonClick(root, thirdPosition));
+        userButton3.setOnLongClickListener(v -> onUserButtonLongClick(root, userButton3, THIRD_POSITION));
+
+        startTimer.setOnClickListener(v -> onStartTimer());
+        stopTimer.setOnClickListener(v -> onStopTimer());
+
+        return root;
+
+
+    }
+
+    private boolean onUserButtonLongClick(View root, Button userButton1, String key) {
+        if (currentPosition != null) {
+            String position = currentPosition.toString();
+            saveToPreferences(key, position);
+            setButtonText(userButton1, position);
             return true;
-        });
-        downButton.setOnTouchListener((v, event) -> {
+        } else {
+            Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
+        }
+        return false;
+    }
+
+    private void onUserButtonClick(View root, String firstPosition) {
+        if (bluetoothService.isBluetoothConnected() && canClick) {
+            canClick = false;
+            new MoveToPoint(firstPosition).execute();
+        } else {
+            if (!canClick) {
+                Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private boolean onBluetoothButtonTouch(@NonNull LayoutInflater inflater, ViewGroup container) {
+        if(!isDialogDisplayed){
+            if(bluetoothService.isBluetoothOn()){
+                showDevicesListDialog(inflater, container);
+            }
+            else {
+                showEnableBluetoothDialog();
+            }
+            isDialogDisplayed = true;
+            return false;
+        }
+        return false;
+    }
+
+    private boolean onDownButtonTouch(View root, MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                if (bluetoothService.isBluetoothConnected()) {
+                    down();
+                } else {
+                    Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                stop();
+                break;
+        }
+        return false;
+    }
+
+    private boolean onUpButtonTouch(View root, MotionEvent event) {
+        if (mBound) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
-                        down();
+                    if (bluetoothService.isBluetoothConnected()) {
+                        up();
                     } else {
                         Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
                     }
@@ -153,113 +190,41 @@ public class TableFragment extends Fragment {
                     stop();
                     break;
             }
-            return false;
-        });
+        }
+        return true;
+    }
 
-        userButton1.setOnClickListener(v -> {
-            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
-                canClick = false;
-                new MoveToPoint(firstPosition).execute();
-            } else {
-                if (!canClick) {
-                    Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-        userButton1.setOnLongClickListener(v -> {
-            if (currentPosition != null) {
-                firstPosition = currentPosition.toString();
-                saveToPreferences(FIRST_POSITION, firstPosition);
-                setButtonText(userButton1, firstPosition);
-                return true;
-            } else {
-                Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
-            }
-            return false;
-        });
-        userButton2.setOnClickListener(v -> {
-            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
-                canClick = false;
-                new MoveToPoint(secondPosition).execute();
-            } else {
-                if (!canClick) {
-                    Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-        userButton2.setOnLongClickListener(v -> {
-            if (currentPosition != null) {
-                secondPosition = currentPosition.toString();
-                saveToPreferences(SECOND_POSITION, secondPosition);
-                setButtonText(userButton2, secondPosition);
-                return true;
-            } else {
-                Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
-            }
-            return false;
-        });
-        userButton3.setOnClickListener(v -> {
-            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED && canClick) {
-                canClick = false;
-                new MoveToPoint(thirdPosition).execute();
-            } else {
-                if (!canClick) {
-                    Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
-                }
-            }
-        });
-        userButton3.setOnLongClickListener(v -> {
-            if (currentPosition != null) {
-                thirdPosition = currentPosition.toString();
-                saveToPreferences(THIRD_POSITION, thirdPosition);
-                setButtonText(userButton3, thirdPosition);
-                return true;
-            } else {
-                Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
-            }
-            return false;
-        });
-
-        startTimer.setOnClickListener(v -> {
-            boolean isTimerOn = timerService.isTimerOn();
-            if (timeLeft > 0 && !isTimerOn) {
-                timerService.startTimer(timeLeft, getContext());
-                setProgressColor();
-                startTimer.setBackground(requireContext().getDrawable(R.drawable.pause_circle));
-            }
-            if (isTimerOn) {
-                saveToPreferences(CURRENT_TIMER_VALUE, timeLeft.toString());
-                timerService.stopTimer();
-                startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
-                setProgressColor();
-            }
-        });
-
-        stopTimer.setOnClickListener(v -> {
-            timerService.stopTimer();
-            timeLeft = 0;
-            resetTimerPreferences();
-            progressBar.setProgress(0, 0);
+    @SuppressLint("UseCompatLoadingForDrawables")
+    private void onStartTimer() {
+        boolean isTimerOn = timerService.isTimerOn();
+        if (timeLeft > 0 && !isTimerOn) {
+            timerService.startTimer(timeLeft, getContext());
             setProgressColor();
+            startTimer.setBackground(requireContext().getDrawable(R.drawable.pause_circle));
+        }
+        if (isTimerOn) {
+            saveToPreferences(CURRENT_TIMER_VALUE, timeLeft.toString());
+            timerService.stopTimer();
             startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
-            timerService.cancelAlarm();
-        });
+            setProgressColor();
+        }
+    }
 
-        return root;
-
-
+    @SuppressLint("UseCompatLoadingForDrawables")
+    private void onStopTimer() {
+        timerService.stopTimer();
+        timeLeft = 0;
+        resetTimerPreferences();
+        progressBar.setProgress(0, 0);
+        setProgressColor();
+        startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
+        timerService.cancelAlarm();
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private void setBluetoothButtonColor() {
         if (bluetoothService.isBluetoothOn()) {
-            if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
+            if (bluetoothService.isBluetoothConnected()) {
                 bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_connected));
             } else {
                 bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_on));
@@ -312,7 +277,7 @@ public class TableFragment extends Fragment {
     }
 
     private void showDevicesListDialog(LayoutInflater inflater, ViewGroup container){
-        bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
+        BluetoothViewAdapter bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
         View devicesView = inflater.inflate(R.layout.get_devices_dialog, container, false);
 
         RecyclerView recyclerView = devicesView.findViewById(R.id.recyclerview);
@@ -337,7 +302,7 @@ public class TableFragment extends Fragment {
             isDialogDisplayed=false;
             dialog.cancel();
         });
-        if (bluetoothService.getState() == BluetoothCommunicationState.CONNECTED) {
+        if (bluetoothService.isBluetoothConnected()) {
             builder.setNeutralButton("Disconnect", (dialog, which) -> {
                 isDialogDisplayed=false;
                 bluetoothService.disconnect();
@@ -422,6 +387,7 @@ public class TableFragment extends Fragment {
 
     private void bindBluetoothService() {
         Intent intent = new Intent(getActivity(), BluetoothService.class);
+//        ContextCompat.startForegroundService(requireContext(), intent);
         requireActivity().bindService(intent, bluetoothServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
@@ -485,6 +451,7 @@ public class TableFragment extends Fragment {
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
             bluetoothService.setBluetoothHandler(null);
+            bluetoothService.setStateHandler(null);
         }
     };
 

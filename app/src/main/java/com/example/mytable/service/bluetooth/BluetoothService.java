@@ -201,6 +201,10 @@ public class BluetoothService extends Service {
         }
     }
 
+    public boolean isBluetoothConnected() {
+        return state == BluetoothCommunicationState.CONNECTED;
+    }
+
     public class LocalBinder extends Binder {
         public BluetoothService getService() {
             return BluetoothService.this;
