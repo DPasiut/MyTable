@@ -5,4 +5,5 @@
     <string name="title_notifications">Notifications</string>
     <string name="bluetooth">Bluetooth</string>
     <string name="disconnect">Disconnect</string>
+    <string name="light">Light</string>
 </resources>

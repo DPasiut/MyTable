@@ -1,4 +1,4 @@
-package com.example.mytable.ui.notifications;
+package com.example.mytable.ui.color_picker;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;

@@ -13,7 +13,7 @@
 
     <fragment
         android:id="@+id/navigation_notifications"
-        android:name="com.example.mytable.ui.notifications.NotificationsFragment"
-        android:label="@string/title_notifications"
-        tools:layout="@layout/fragment_notifications" />
+        android:name="com.example.mytable.ui.color_picker.ColorPickerFragment"
+        android:label="The light"
+        tools:layout="@layout/fragment_color_picker" />
 </navigation>

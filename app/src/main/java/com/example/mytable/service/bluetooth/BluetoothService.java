@@ -36,6 +36,7 @@ public class BluetoothService extends Service {
     private BluetoothConnectionThread connectionThread;
     private BluetoothCommunicationState state;
     private boolean isBluetoothOn;
+    private boolean isLightOn = false;
     private final BluetoothAdapter bluetoothAdapter;
     private Handler bluetoothHandler;
     private Handler stateHandler;
@@ -114,6 +115,16 @@ public class BluetoothService extends Service {
         sendMessageToDevice(s);
     }
 
+    public String turnLightOn(String s){
+      //  sendMessageToDevice(s);
+        isLightOn = true;
+        return s;
+    }
+
+    public void turnLightOFF(String s){
+        sendMessageToDevice(s);
+        isLightOn = false;
+    }
     public BluetoothCommunicationState getState() {
         return state;
     }
@@ -210,6 +221,8 @@ public class BluetoothService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        turnLightOFF("loff");
+        isLightOn = false;
     }
 
     @Override
