@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -58,8 +59,10 @@ public class ColorPickerFragment extends Fragment {
             pickedColor.setBackgroundColor(color);
             txtColorHex.setText(colorHex(color));
             if (mBound) {
-                bluetoothService.lightChangeColor("c" + colorHex(color));
-                Log.d("SEND COLOR NUMBER", bluetoothService.lightTurnOn(txtColorHex.getText().toString()));
+                new Handler().postDelayed(() -> {
+                    bluetoothService.lightChangeColor("c" + colorHex(color));
+//                        Log.d("SEND COLOR NUMBER", bluetoothService.lightTurnOn(txtColorHex.getText().toString()));
+                }, 200);
             }
         });
 

@@ -180,7 +180,7 @@ char getCommand(String messageFromDevice) {
         return messageFromDevice.charAt(messageFromDevice.length() - 1);
     }
     if (messageFromDevice.length() > 1) {
-        if (messageFromDevice.charAt(messageFromDevice.length() - 1) == 'c') {
+        if (messageFromDevice.charAt(0) == 'c') {
             return 'c';
             lightColor = messageFromDevice.substring(1, messageFromDevice.length() - 1);
         } else {
