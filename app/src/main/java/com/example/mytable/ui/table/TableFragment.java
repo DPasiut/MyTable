@@ -64,10 +64,9 @@ public class TableFragment extends Fragment {
     Button startTimer;
     Button stopTimer;
     ImageButton bluetoothButton;
+    TextView btName;
 
     private boolean mShouldUnbind;
-    private BroadcastReceiver broadcastReceiver;
-    private IntentFilter intentFilter;
 
     @SuppressLint("ClickableViewAccessibility")
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -83,6 +82,7 @@ public class TableFragment extends Fragment {
         startTimer = root.findViewById(R.id.start_button);
         stopTimer = root.findViewById(R.id.stop_button);
         bluetoothButton = root.findViewById(R.id.bluetooth_button);
+        btName = root.findViewById(R.id.bt_name_text);
 
         position = root.findViewById(R.id.position);
         progressBar = root.findViewById(R.id.time_progress_bar);
@@ -277,7 +277,7 @@ public class TableFragment extends Fragment {
         bluetoothService.stopEngine("w");
     }
 
-    private void showDevicesListDialog(LayoutInflater inflater, ViewGroup container) {
+    private boolean showDevicesListDialog(LayoutInflater inflater, ViewGroup container) {
         BluetoothViewAdapter bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
         View devicesView = inflater.inflate(R.layout.get_devices_dialog, container, false);
 
@@ -311,6 +311,8 @@ public class TableFragment extends Fragment {
             });
         }
         builder.show();
+
+        return true;
     }
 
     private void showEnableBluetoothDialog() {
@@ -329,31 +331,33 @@ public class TableFragment extends Fragment {
     }
 
     private void showSetTimeDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Chose time in minutes");
-        View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
-        NumberPicker hourPicker = view.findViewById(R.id.hour_picker);
-        NumberPicker minutesPicker = view.findViewById(R.id.minutes_picker);
-        hourPicker.setMaxValue(24);
-        hourPicker.setMinValue(0);
-        minutesPicker.setMinValue(0);
-        minutesPicker.setMaxValue(60);
-        builder.setView(view);
+        if(!isTimeDialogDisplayed){
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            builder.setTitle("Chose time in minutes");
+            View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
+            NumberPicker hourPicker = view.findViewById(R.id.hour_picker);
+            NumberPicker minutesPicker = view.findViewById(R.id.minutes_picker);
+            hourPicker.setMaxValue(24);
+            hourPicker.setMinValue(0);
+            minutesPicker.setMinValue(0);
+            minutesPicker.setMaxValue(60);
+            builder.setView(view);
 
-        builder.setPositiveButton("set", (dialog, which) -> {
-            Integer timeInSeconds = timerService.convertTimeToSeconds(hourPicker.getValue(), minutesPicker.getValue(), 0);
-            Integer timeInMinutes = timerService.convertTimeToMinutes(hourPicker.getValue(), minutesPicker.getValue(), 0);
+            builder.setPositiveButton("set", (dialog, which) -> {
+                Integer timeInSeconds = timerService.convertTimeToSeconds(hourPicker.getValue(), minutesPicker.getValue(), 0);
+                Integer timeInMinutes = timerService.convertTimeToMinutes(hourPicker.getValue(), minutesPicker.getValue(), 0);
 
-            progressBar.setMaxProgress(timeInMinutes);
-            progressBar.setCurrentProgress(timeInMinutes);
-            timeMaxValue = timeInMinutes;
-            timeLeft = timeInSeconds;
+                progressBar.setMaxProgress(timeInMinutes);
+                progressBar.setCurrentProgress(timeInMinutes);
+                timeMaxValue = timeInMinutes;
+                timeLeft = timeInSeconds;
 
-            saveToPreferences(MAX_TIMER_VALUE, timeInMinutes.toString());
-            dialog.dismiss();
-        });
-        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
-        builder.show();
+                saveToPreferences(MAX_TIMER_VALUE, timeInMinutes.toString());
+                dialog.dismiss();
+            });
+            builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+            builder.show();
+        }
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
@@ -411,7 +415,7 @@ public class TableFragment extends Fragment {
             bluetoothService = binder.getService();
             setBluetoothButtonColor();
 
-            bluetoothService.setBluetoothHandler(new Handler(Looper.myLooper()) {
+            bluetoothService.setBluetoothHandler(new Handler(Looper.getMainLooper()) {
                 @Override
                 public void handleMessage(Message msg) {
                     if (position != null) {
@@ -443,6 +447,7 @@ public class TableFragment extends Fragment {
                     switch (connectionState) {
                         case "CONNECTED":
                             bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_connected));
+                            btName.setText(bluetoothService.getConnectedDevice());
                             break;
                         case "DISCONNECTED":
                             if (bluetoothService.isBluetoothEnabled()) {
@@ -450,6 +455,7 @@ public class TableFragment extends Fragment {
                             } else {
                                 bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_off));
                             }
+                            btName.setText("");
                             break;
                     }
                 }
