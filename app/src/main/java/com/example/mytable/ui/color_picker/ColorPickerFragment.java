@@ -23,8 +23,6 @@ import com.example.mytable.R;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Locale;
 
 import top.defaults.colorpicker.ColorPickerView;
@@ -59,17 +57,21 @@ public class ColorPickerFragment extends Fragment {
         colorPickerView.subscribe((color, fromUser, shouldPropagate) -> {
             pickedColor.setBackgroundColor(color);
             txtColorHex.setText(colorHex(color));
-            if(mBound){
-                Log.d("SEND COLOR NUMBER", bluetoothService.turnLightOn(txtColorHex.getText().toString()));
+            if (mBound) {
+                bluetoothService.lightChangeColor("c" + colorHex(color));
+                Log.d("SEND COLOR NUMBER", bluetoothService.lightTurnOn(txtColorHex.getText().toString()));
             }
         });
 
         powerBtn.setOnClickListener(v -> {
-            if (!bluetoothService.isBluetoothEnabled() || bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
+            if (!bluetoothService.isBluetoothEnabled() || bluetoothService.getState() != BluetoothCommunicationState.CONNECTED) {
                 Toast.makeText(v.getContext(), "Bluetooth is OFF or DISCONNECTED", Toast.LENGTH_SHORT).show();
-            }
-            else {
-                bluetoothService.turnLightOn(colorHex(colorPickerView.getColor()));
+            } else {
+                if (!bluetoothService.isLightOn()) {
+                    bluetoothService.lightTurnOn("o");
+                } else {
+                    bluetoothService.lightTurnOff("f");
+                }
             }
         });
         return root;
@@ -104,6 +106,7 @@ public class ColorPickerFragment extends Fragment {
             bluetoothService = binder.getService();
             mBound = true;
         }
+
         @Override
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
@@ -116,4 +119,13 @@ public class ColorPickerFragment extends Fragment {
         super.onPause();
         requireActivity().unbindService(bluetoothServiceConnection);
     }
+
 }
+
+
+
+
+
+
+
+

@@ -46,15 +46,6 @@ public class BluetoothService extends Service {
     private final BluetoothAdapter bluetoothAdapter;
     private Handler bluetoothHandler;
     private Handler stateHandler;
-
-    public String getConnectedDevice() {
-        return connectedDevice;
-    }
-
-    public void setConnectedDevice(String connectedDevice) {
-        this.connectedDevice = connectedDevice;
-    }
-
     private String connectedDevice;
 
     @SuppressLint("HardwareIds")
@@ -163,17 +154,20 @@ public class BluetoothService extends Service {
         sendMessageToDevice(s);
     }
 
-    public String turnLightOn(String s) {
-        //  sendMessageToDevice(s);
+    public String lightTurnOn(String s) {
+        sendMessageToDevice(s);
         isLightOn = true;
         return s;
     }
 
-    public void turnLightOFF(String s) {
+    public void lightTurnOff(String s) {
         sendMessageToDevice(s);
         isLightOn = false;
     }
 
+    public void lightChangeColor(String s){
+        sendMessageToDevice(s);
+    }
     public BluetoothCommunicationState getState() {
         return state;
     }
@@ -233,6 +227,17 @@ public class BluetoothService extends Service {
         }
     }
 
+    public boolean isLightOn() {
+        return isLightOn;
+    }
+
+    public String getConnectedDevice() {
+        return connectedDevice;
+    }
+
+    public void setConnectedDevice(String connectedDevice) {
+        this.connectedDevice = connectedDevice;
+    }
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
