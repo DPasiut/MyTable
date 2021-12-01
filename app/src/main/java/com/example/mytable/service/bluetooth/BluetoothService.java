@@ -37,9 +37,6 @@ import java.util.UUID;
 
 public class BluetoothService extends Service {
     private static final String TAG = "[BLUETOOTH_SERVICE]";
-    private NotificationManager mNM;
-    private final int NOTIFICATION = 1;
-
     private final IBinder binder = new LocalBinder();
 
     private BluetoothConnectionThread connectionThread;
@@ -49,6 +46,16 @@ public class BluetoothService extends Service {
     private final BluetoothAdapter bluetoothAdapter;
     private Handler bluetoothHandler;
     private Handler stateHandler;
+
+    public String getConnectedDevice() {
+        return connectedDevice;
+    }
+
+    public void setConnectedDevice(String connectedDevice) {
+        this.connectedDevice = connectedDevice;
+    }
+
+    private String connectedDevice;
 
     @SuppressLint("HardwareIds")
     public BluetoothService() {
@@ -90,8 +97,11 @@ public class BluetoothService extends Service {
                     }
                 }
             });
+            setConnectedDevice(device.getName());
+            setState(BluetoothCommunicationState.CONNECTED);
 //            state = BluetoothCommunicationState.CONNECTED;
         }catch (Exception e){
+            setConnectedDevice("");
             state = BluetoothCommunicationState.DISCONNECTED;
             Log.d(TAG, "Something went wrong with connection");
         }

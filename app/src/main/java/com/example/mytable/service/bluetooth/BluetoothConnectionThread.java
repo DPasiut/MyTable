@@ -53,11 +53,6 @@ public class BluetoothConnectionThread extends Thread {
                         stringBuilder.append(lastChar);
                     }
                     if(stringBuilder.length() > 0 && lastChar == ';'){
-//                        Intent intent1local = new Intent();
-//                        intent1local.setAction("Counter");
-//                        intent1local.putExtra("TimeRemaining", stringBuilder.toString());
-//                        LocalBroadcastManager.getInstance().sendBroadcast(intent1local);
-//                        context.sendBroadcast(intent1local);
                       sendMessage(stringBuilder.toString());
                         stringBuilder = new StringBuilder();
                         lastChar = '.';
@@ -88,7 +83,6 @@ public class BluetoothConnectionThread extends Thread {
             mmSocket.close();
             isWorking = false;
             Log.d(TAG, "Connection closed success");
-            bluetoothService.setState(BluetoothCommunicationState.DISCONNECTED);
         } catch (IOException e) {
             Log.e(TAG, "Could not close the connect socket", e);
         }
@@ -99,13 +93,11 @@ public class BluetoothConnectionThread extends Thread {
         try {
             mmSocket.connect();
             Log.d(TAG, "Connected success");
-            bluetoothService.setState(BluetoothCommunicationState.CONNECTED);
         } catch (IOException connectException) {
             try {
                 mmSocket.close();
             } catch (IOException closeException) {
                 Log.e(TAG, "Could not close the client socket", closeException);
-                bluetoothService.setState(BluetoothCommunicationState.DISCONNECTED);
             }
         }
     }
