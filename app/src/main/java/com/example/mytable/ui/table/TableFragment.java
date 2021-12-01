@@ -2,9 +2,11 @@ package com.example.mytable.ui.table;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -63,7 +65,9 @@ public class TableFragment extends Fragment {
     Button stopTimer;
     ImageButton bluetoothButton;
 
-
+    private boolean mShouldUnbind;
+    private BroadcastReceiver broadcastReceiver;
+    private IntentFilter intentFilter;
 
     @SuppressLint("ClickableViewAccessibility")
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -90,7 +94,7 @@ public class TableFragment extends Fragment {
         });
 
         bindBluetoothService();
-//        bindTimerService();
+        bindTimerService();
         getPreferences();
 
         bluetoothButton.setOnTouchListener((v, event) -> onBluetoothButtonTouch(inflater, container));
@@ -115,8 +119,6 @@ public class TableFragment extends Fragment {
         stopTimer.setOnClickListener(v -> onStopTimer());
 
         return root;
-
-
     }
 
     private boolean onUserButtonLongClick(View root, Button userButton1, String key) {
@@ -131,10 +133,10 @@ public class TableFragment extends Fragment {
         return false;
     }
 
-    private void onUserButtonClick(View root, String firstPosition) {
+    private void onUserButtonClick(View root, String position) {
         if (bluetoothService.isBluetoothConnected() && canClick) {
             canClick = false;
-            new MoveToPoint(firstPosition).execute();
+            new MoveToPoint(position).execute();
         } else {
             if (!canClick) {
                 Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
@@ -145,11 +147,10 @@ public class TableFragment extends Fragment {
     }
 
     private boolean onBluetoothButtonTouch(@NonNull LayoutInflater inflater, ViewGroup container) {
-        if(!isDialogDisplayed){
-            if(bluetoothService.isBluetoothOn()){
+        if (!isDialogDisplayed) {
+            if (bluetoothService.isBluetoothEnabled()) {
                 showDevicesListDialog(inflater, container);
-            }
-            else {
+            } else {
                 showEnableBluetoothDialog();
             }
             isDialogDisplayed = true;
@@ -223,7 +224,7 @@ public class TableFragment extends Fragment {
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private void setBluetoothButtonColor() {
-        if (bluetoothService.isBluetoothOn()) {
+        if (bluetoothService.isBluetoothEnabled()) {
             if (bluetoothService.isBluetoothConnected()) {
                 bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_connected));
             } else {
@@ -276,7 +277,7 @@ public class TableFragment extends Fragment {
         bluetoothService.stopEngine("w");
     }
 
-    private void showDevicesListDialog(LayoutInflater inflater, ViewGroup container){
+    private void showDevicesListDialog(LayoutInflater inflater, ViewGroup container) {
         BluetoothViewAdapter bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
         View devicesView = inflater.inflate(R.layout.get_devices_dialog, container, false);
 
@@ -293,18 +294,18 @@ public class TableFragment extends Fragment {
 
 
         builder.setNegativeButton("Back", (dialog, which) -> {
-            isDialogDisplayed=false;
+            isDialogDisplayed = false;
             dialog.cancel();
         });
 
         builder.setNeutralButton("Disable BT", (dialog, which) -> {
             bluetoothService.disableBluetooth();
-            isDialogDisplayed=false;
+            isDialogDisplayed = false;
             dialog.cancel();
         });
         if (bluetoothService.isBluetoothConnected()) {
             builder.setNeutralButton("Disconnect", (dialog, which) -> {
-                isDialogDisplayed=false;
+                isDialogDisplayed = false;
                 bluetoothService.disconnect();
                 dialog.cancel();
             });
@@ -316,11 +317,11 @@ public class TableFragment extends Fragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("Enable Bluetooth?");
         builder.setNegativeButton("NO", (dialog, which) -> {
-            isDialogDisplayed=false;
+            isDialogDisplayed = false;
             dialog.cancel();
         });
         builder.setPositiveButton("Yes", (dialog, which) -> {
-            isDialogDisplayed=false;
+            isDialogDisplayed = false;
             bluetoothService.enableBluetooth();
             dialog.cancel();
         });
@@ -362,14 +363,14 @@ public class TableFragment extends Fragment {
         builder.setNegativeButton("NO", (dialog, which) -> {
             startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
             timerService.cancelAlarm();
-            isTimeDialogDisplayed=false;
+            isTimeDialogDisplayed = false;
             dialog.cancel();
         });
         builder.setPositiveButton("Yes", (dialog, which) -> {
-            isTimeDialogDisplayed=false;
+            isTimeDialogDisplayed = false;
             timerService.cancelAlarm();
             progressBar.setProgress(timeMaxValue, timeMaxValue);
-            timerService.startTimer(timerService.convertTimeToSeconds(0,timeMaxValue,0),getContext());
+            timerService.startTimer(timerService.convertTimeToSeconds(0, timeMaxValue, 0), getContext());
             dialog.cancel();
         });
         builder.setNeutralButton("stop alarm", (dialog, which) -> {
@@ -381,36 +382,45 @@ public class TableFragment extends Fragment {
     }
 
     private void bindTimerService() {
-        Intent intent = new Intent(getActivity(), TimerService.class);
+        Intent intent = new Intent(requireContext(), TimerService.class);
         requireActivity().bindService(intent, timerServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
     private void bindBluetoothService() {
-        Intent intent = new Intent(getActivity(), BluetoothService.class);
-//        ContextCompat.startForegroundService(requireContext(), intent);
-        requireActivity().bindService(intent, bluetoothServiceConnection, Context.BIND_AUTO_CREATE);
+        Intent intent = new Intent(getContext(), BluetoothService.class);
+        if (requireActivity().bindService(intent, bluetoothServiceConnection, Context.BIND_AUTO_CREATE)) {
+            mShouldUnbind = true;
+        } else {
+            Log.e("MY_APP_TAG", "Error: The requested service doesn't " +
+                    "exist, or this client isn't allowed access to it.");
+        }
+
+    }
+
+    void unbindService() {
+        if (mShouldUnbind) {
+            // Release information about the service's state.
+            requireActivity().unbindService(bluetoothServiceConnection);
+            mShouldUnbind = false;
+        }
     }
 
     private final ServiceConnection bluetoothServiceConnection = new ServiceConnection() {
-        @SuppressLint("HandlerLeak")
-        @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             bluetoothService = binder.getService();
             setBluetoothButtonColor();
 
             bluetoothService.setBluetoothHandler(new Handler(Looper.myLooper()) {
-                @SuppressLint("SetTextI18n")
                 @Override
                 public void handleMessage(Message msg) {
                     if (position != null) {
-                        Log.d("[TABLE FRAGMENT]", " BLUETOOTH HANDLE MESSAGE");
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("message");
                         if (count == 10) {
                             int tmp = tableHigh / 10;
                             currentPosition = tmp;
-                            position.setText(String.valueOf(MIN_TABLE_POSITION + tmp / 14));
+                            position.setText(String.valueOf(70 + tmp / 14));
                             tableHigh = 0;
                             count = 0;
                         }
@@ -423,6 +433,7 @@ public class TableFragment extends Fragment {
             });
 
             bluetoothService.setStateHandler(new Handler(Looper.myLooper()) {
+
                 @SuppressLint("UseCompatLoadingForDrawables")
                 @Override
                 public void handleMessage(Message msg) {
@@ -434,7 +445,7 @@ public class TableFragment extends Fragment {
                             bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_connected));
                             break;
                         case "DISCONNECTED":
-                            if (bluetoothService.isBluetoothOn()) {
+                            if (bluetoothService.isBluetoothEnabled()) {
                                 bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_on));
                             } else {
                                 bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_off));
@@ -461,6 +472,7 @@ public class TableFragment extends Fragment {
         public void onServiceConnected(ComponentName className, IBinder service) {
             TimerService.LocalBinder binder = (TimerService.LocalBinder) service;
             timerService = binder.getService();
+
             timerService.setTimerHandler(new Handler(Looper.myLooper()) {
                 @SuppressLint("SetTextI18n")
                 @Override
@@ -472,7 +484,7 @@ public class TableFragment extends Fragment {
                         //aktualna wartość zapamiętywana w sekundach
                         timeLeft = Integer.parseInt(o);
                         timerService.setTimerProgress(progressBar, timeLeft, timeMaxValue);
-                        if(timeLeft < 1){
+                        if (timeLeft < 1) {
                             showTimesUpDialog();
                             isTimeDialogDisplayed = true;
                         }
@@ -539,11 +551,18 @@ public class TableFragment extends Fragment {
         super.onResume();
         getPreferences();
         progressBar.setProgress(timeLeft / 60, timeMaxValue);
+
     }
 
     @Override
     public void onPause() {
         super.onPause();
         saveToPreferences(CURRENT_TIMER_VALUE, timeLeft.toString());
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unbindService();
     }
 }

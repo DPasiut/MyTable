@@ -1,6 +1,5 @@
 package com.example.mytable.ui.bluetooth;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
@@ -58,7 +57,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
 
         @Override
         public void onClick(View v) {
-            if(!bluetoothService.isBluetoothOn()){
+            if(!bluetoothService.isBluetoothEnabled()){
                 Toast.makeText(v.getContext(), "Bluetooth is OFF", Toast.LENGTH_SHORT).show();
             }else {
                 name = this.textView.getText().toString();
@@ -131,9 +130,8 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
         myEdit.apply();
     }
 
-    @SuppressLint("StaticFieldLeak")
     private class ConnectWithBluetoothDevice extends AsyncTask<Void, Void, Void> {
-        private static final int MAX_WAITING_TIME = 100;
+        private int MAX_WAITING_TIME = 100;
         View view;
         String name;
         public ConnectWithBluetoothDevice(View view, String name) {

@@ -22,16 +22,8 @@ public class BluetoothConnectionThread extends Thread {
     private final BluetoothSocket mmSocket;
     private InputStream mmInStream;
     private OutputStream mmOutStream;
-    private BluetoothService bluetoothService;
-    private StringBuilder stringBuilder;
-
+    private final BluetoothService bluetoothService;
     private volatile boolean isWorking;
-
-    private interface MessageConstants {
-        public static final int MESSAGE_READ = 0;
-        public static final int MESSAGE_WRITE = 1;
-        public static final int MESSAGE_TOAST = 2;
-    }
 
     public BluetoothConnectionThread(BluetoothAdapter bluetoothAdapter, BluetoothDevice device, BluetoothService bluetoothService) {
         this.bluetoothService = bluetoothService;
@@ -47,10 +39,10 @@ public class BluetoothConnectionThread extends Thread {
         isWorking = false;
     }
 
+
     public void run() {
-        connect();
         isWorking = true;
-        stringBuilder = new StringBuilder();
+        StringBuilder stringBuilder = new StringBuilder();
         char lastChar = '.';
 
         while (isWorking) {
@@ -61,6 +53,11 @@ public class BluetoothConnectionThread extends Thread {
                         stringBuilder.append(lastChar);
                     }
                     if(stringBuilder.length() > 0 && lastChar == ';'){
+//                        Intent intent1local = new Intent();
+//                        intent1local.setAction("Counter");
+//                        intent1local.putExtra("TimeRemaining", stringBuilder.toString());
+//                        LocalBroadcastManager.getInstance().sendBroadcast(intent1local);
+//                        context.sendBroadcast(intent1local);
                       sendMessage(stringBuilder.toString());
                         stringBuilder = new StringBuilder();
                         lastChar = '.';
@@ -97,7 +94,7 @@ public class BluetoothConnectionThread extends Thread {
         }
     }
 
-    private void connect() {
+    public void connect() {
         bluetoothAdapter.cancelDiscovery();
         try {
             mmSocket.connect();
@@ -111,7 +108,6 @@ public class BluetoothConnectionThread extends Thread {
                 bluetoothService.setState(BluetoothCommunicationState.DISCONNECTED);
             }
         }
-
     }
 
     private BluetoothSocket createSocket() {
@@ -125,8 +121,8 @@ public class BluetoothConnectionThread extends Thread {
         return tmp;
     }
 
-    private synchronized void sendMessage(String message){
-        if (handler != null){
+    private synchronized void sendMessage(String message) {
+        if (handler != null) {
             Message msg = handler.obtainMessage();
             Bundle bundle = new Bundle();
             bundle.putString("message", message);
@@ -136,7 +132,8 @@ public class BluetoothConnectionThread extends Thread {
         }
 
     }
-    public void setHandler(Handler handler){
+
+    public synchronized void setHandler(Handler handler) {
         this.handler = handler;
     }
 

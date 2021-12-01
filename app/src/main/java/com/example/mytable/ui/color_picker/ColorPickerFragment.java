@@ -23,6 +23,8 @@ import com.example.mytable.R;
 import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
 import com.example.mytable.service.bluetooth.BluetoothService;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Locale;
 
 import top.defaults.colorpicker.ColorPickerView;
@@ -63,7 +65,7 @@ public class ColorPickerFragment extends Fragment {
         });
 
         powerBtn.setOnClickListener(v -> {
-            if (!bluetoothService.isBluetoothOn() || bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
+            if (!bluetoothService.isBluetoothEnabled() || bluetoothService.getState() != BluetoothCommunicationState.CONNECTED){
                 Toast.makeText(v.getContext(), "Bluetooth is OFF or DISCONNECTED", Toast.LENGTH_SHORT).show();
             }
             else {
@@ -74,11 +76,11 @@ public class ColorPickerFragment extends Fragment {
     }
 
 
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putInt(SAVED_STATE_KEY_COLOR, colorPickerView.getColor());
-    }
+//    @Override
+//    public void onSaveInstanceState(@NotNull Bundle outState) {
+//        super.onSaveInstanceState(outState);
+//        outState.putInt(SAVED_STATE_KEY_COLOR, colorPickerView.getColor());
+//    }
 
     private String colorHex(int color) {
         int a = Color.alpha(color);
@@ -108,4 +110,10 @@ public class ColorPickerFragment extends Fragment {
             bluetoothService.setBluetoothHandler(null);
         }
     };
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        requireActivity().unbindService(bluetoothServiceConnection);
+    }
 }
