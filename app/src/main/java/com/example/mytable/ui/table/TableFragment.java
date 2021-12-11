@@ -2,11 +2,9 @@ package com.example.mytable.ui.table;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -22,6 +20,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.NumberPicker;
 import android.widget.TextView;
@@ -33,16 +32,26 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mytable.R;
+import com.example.mytable.database.Setting;
+import com.example.mytable.database.SettingsRepository;
 import com.example.mytable.service.bluetooth.BluetoothService;
+import com.example.mytable.service.bluetooth.BluetoothViewAdapter;
+import com.example.mytable.service.bluetooth.SetBluetoothDevicesList;
 import com.example.mytable.service.time.TimerService;
-import com.example.mytable.ui.bluetooth.BluetoothViewAdapter;
-import com.example.mytable.ui.bluetooth.SetBluetoothDevicesList;
+
+import java.util.Objects;
 
 import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
 
-import static com.example.mytable.PreferencesConstants.*;
+import static com.example.mytable.PreferencesConstants.CURRENT_TIMER_VALUE;
+import static com.example.mytable.PreferencesConstants.DEFAULT_PROGRESS_COLOR;
+import static com.example.mytable.PreferencesConstants.MAX_TABLE_POSITION_CM;
+import static com.example.mytable.PreferencesConstants.MAX_TIMER_VALUE;
+import static com.example.mytable.PreferencesConstants.MIN_TABLE_POSITION_CM;
+import static com.example.mytable.PreferencesConstants.PLAY_PROGRESS_COLOR;
 
 public class TableFragment extends Fragment {
+
 
     private BluetoothService bluetoothService;
     private TimerService timerService;
@@ -58,36 +67,37 @@ public class TableFragment extends Fragment {
     private boolean isDialogDisplayed = false;
     private boolean isTimeDialogDisplayed = false;
 
-    private String firstPosition, secondPosition, thirdPosition;
     private CircularProgressIndicator progressBar;
+    private boolean mShouldUnbind;
+    private SettingRecycleViewAdapter settingRecycleViewAdapter;
+    private SettingsRepository settingsRepository;
 
     Button startTimer;
     Button stopTimer;
+    Button addSetting;
     ImageButton bluetoothButton;
     TextView btName;
+    RecyclerView settingsRecyclerView;
 
-    private boolean mShouldUnbind;
 
     @SuppressLint("ClickableViewAccessibility")
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
 
         View root = inflater.inflate(R.layout.fragment_table, container, false);
-
         Button upButton = root.findViewById(R.id.up_btn);
         Button downButton = root.findViewById(R.id.down_btn);
-        Button userButton1 = root.findViewById(R.id.user_1);
-        Button userButton2 = root.findViewById(R.id.user_2);
-        Button userButton3 = root.findViewById(R.id.user_3);
         startTimer = root.findViewById(R.id.start_button);
         stopTimer = root.findViewById(R.id.stop_button);
         bluetoothButton = root.findViewById(R.id.bluetooth_button);
         btName = root.findViewById(R.id.bt_name_text);
+        addSetting = root.findViewById(R.id.add_setting_btn);
 
         position = root.findViewById(R.id.position);
         progressBar = root.findViewById(R.id.time_progress_bar);
 
 
+        addSetting.setOnClickListener(v -> showAddSettingDialog());
         progressBar.setOnTouchListener((v, event) -> {
             showSetTimeDialog();
             return false;
@@ -99,52 +109,16 @@ public class TableFragment extends Fragment {
 
         bluetoothButton.setOnTouchListener((v, event) -> onBluetoothButtonTouch(inflater, container));
 
-        setButtonText(userButton1, firstPosition);
-        setButtonText(userButton2, secondPosition);
-        setButtonText(userButton3, thirdPosition);
-
         upButton.setOnTouchListener((v, event) -> onUpButtonTouch(root, event));
         downButton.setOnTouchListener((v, event) -> onDownButtonTouch(root, event));
-
-        userButton1.setOnClickListener(v -> onUserButtonClick(root, firstPosition));
-        userButton1.setOnLongClickListener(v -> onUserButtonLongClick(root, userButton1, FIRST_POSITION));
-
-        userButton2.setOnClickListener(v -> onUserButtonClick(root, secondPosition));
-        userButton2.setOnLongClickListener(v -> onUserButtonLongClick(root, userButton2, SECOND_POSITION));
-
-        userButton3.setOnClickListener(v -> onUserButtonClick(root, thirdPosition));
-        userButton3.setOnLongClickListener(v -> onUserButtonLongClick(root, userButton3, THIRD_POSITION));
 
         startTimer.setOnClickListener(v -> onStartTimer());
         stopTimer.setOnClickListener(v -> onStopTimer());
 
+        initRecyclerView(root);
         return root;
     }
 
-    private boolean onUserButtonLongClick(View root, Button userButton1, String key) {
-        if (currentPosition != null) {
-            String position = currentPosition.toString();
-            saveToPreferences(key, position);
-            setButtonText(userButton1, position);
-            return true;
-        } else {
-            Toast.makeText(root.getContext(), "Unknown position :(", Toast.LENGTH_LONG).show();
-        }
-        return false;
-    }
-
-    private void onUserButtonClick(View root, String position) {
-        if (bluetoothService.isBluetoothConnected() && canClick) {
-            canClick = false;
-            new MoveToPoint(position).execute();
-        } else {
-            if (!canClick) {
-                Toast.makeText(root.getContext(), "Table is moving now", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(root.getContext(), "No Connection!", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
 
     private boolean onBluetoothButtonTouch(@NonNull LayoutInflater inflater, ViewGroup container) {
         if (!isDialogDisplayed) {
@@ -240,11 +214,6 @@ public class TableFragment extends Fragment {
         saveToPreferences(CURRENT_TIMER_VALUE, "0");
     }
 
-    private void setButtonText(Button button, String text) {
-        String s = String.valueOf(MIN_TABLE_POSITION + Integer.parseInt(text) / 14);
-        button.setText(s);
-    }
-
     private void saveToPreferences(String key, String value) {
         SharedPreferences sharedPreferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
         SharedPreferences.Editor myEdit = sharedPreferences.edit();
@@ -254,9 +223,6 @@ public class TableFragment extends Fragment {
 
     private void getPreferences() {
         SharedPreferences preferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
-        firstPosition = preferences.getString(FIRST_POSITION, DEFAULT_POSITION_VALUE);
-        secondPosition = preferences.getString(SECOND_POSITION, DEFAULT_POSITION_VALUE);
-        thirdPosition = preferences.getString(THIRD_POSITION, DEFAULT_POSITION_VALUE);
         timeMaxValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
         timeLeft = Integer.valueOf(preferences.getString(CURRENT_TIMER_VALUE, "0"));
     }
@@ -277,9 +243,20 @@ public class TableFragment extends Fragment {
         bluetoothService.stopEngine("w");
     }
 
+    private void initRecyclerView(View view) {
+        settingRecycleViewAdapter = new SettingRecycleViewAdapter(requireActivity());
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false);
+        settingsRecyclerView = view.findViewById(R.id.settings_recycler_view);
+        settingsRecyclerView.setHasFixedSize(true);
+        settingsRecyclerView.setLayoutManager(layoutManager);
+        settingsRecyclerView.setAdapter(settingRecycleViewAdapter);
+        SetSettingsList setSettingsList = new SetSettingsList(settingsRecyclerView, view);
+        setSettingsList.execute();
+    }
+
     private boolean showDevicesListDialog(LayoutInflater inflater, ViewGroup container) {
         BluetoothViewAdapter bluetoothViewAdapter = new BluetoothViewAdapter(getActivity());
-        View devicesView = inflater.inflate(R.layout.get_devices_dialog, container, false);
+        View devicesView = inflater.inflate(R.layout.layout_paired_devices_dialog, container, false);
 
         RecyclerView recyclerView = devicesView.findViewById(R.id.recyclerview);
         recyclerView.setHasFixedSize(true);
@@ -330,11 +307,58 @@ public class TableFragment extends Fragment {
         builder.show();
     }
 
+    @SuppressLint("SetTextI18n")
+    private void showAddSettingDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Add setting");
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_add_setting_dialog, (ViewGroup) getView(), false);
+        EditText description = view.findViewById(R.id.setting_description);
+        EditText valueInput = view.findViewById(R.id.value_input);
+        Button setCurrent = view.findViewById(R.id.set_curr_poss_btn);
+        Button setValue = view.findViewById(R.id.set_value_btn);
+        TextView textView = view.findViewById(R.id.position_setting_value);
+
+        setCurrent.setOnClickListener(v -> textView.setText(position.getText().toString()));
+        setValue.setOnClickListener(v -> {
+            if (valueInput.getText().length() > 0) {
+                int value = Integer.parseInt(String.valueOf(valueInput.getText()));
+                if (value > MIN_TABLE_POSITION_CM && value <= MAX_TABLE_POSITION_CM) {
+                    textView.setText(valueInput.getText());
+                }
+                if (value > MAX_TABLE_POSITION_CM) {
+                    textView.setText(String.valueOf(MAX_TABLE_POSITION_CM));
+                }
+                if (value < MIN_TABLE_POSITION_CM) {
+                    textView.setText(String.valueOf(MIN_TABLE_POSITION_CM));
+                }
+            }
+        });
+
+        builder.setView(view);
+
+        builder.setPositiveButton("add", (dialog, which) -> {
+            saveNewSetting(description.getText().toString(), textView.getText().toString());
+            settingRecycleViewAdapter.setData();
+            Objects.requireNonNull(settingsRecyclerView.getAdapter()).notifyDataSetChanged();
+            settingsRecyclerView.invalidate();
+            dialog.dismiss();
+        });
+
+        builder.setNegativeButton("cancel", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void saveNewSetting(String description, String value) {
+        Setting setting = new Setting(description, value);
+        settingsRepository = new SettingsRepository(requireActivity().getApplication());
+        settingsRepository.insert(setting);
+    }
+
     private void showSetTimeDialog() {
-        if(!isTimeDialogDisplayed){
+        if (!isTimeDialogDisplayed) {
             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
             builder.setTitle("Chose time in minutes");
-            View view = LayoutInflater.from(getContext()).inflate(R.layout.get_time_dialog, (ViewGroup) getView(), false);
+            View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_time_dialog, (ViewGroup) getView(), false);
             NumberPicker hourPicker = view.findViewById(R.id.hour_picker);
             NumberPicker minutesPicker = view.findViewById(R.id.minutes_picker);
             hourPicker.setMaxValue(24);
@@ -403,7 +427,6 @@ public class TableFragment extends Fragment {
 
     void unbindService() {
         if (mShouldUnbind) {
-            // Release information about the service's state.
             requireActivity().unbindService(bluetoothServiceConnection);
             mShouldUnbind = false;
         }
@@ -424,7 +447,7 @@ public class TableFragment extends Fragment {
                         if (count == 10) {
                             int tmp = tableHigh / 10;
                             currentPosition = tmp;
-                            position.setText(String.valueOf(70 + tmp / 14));
+                            position.setText(String.valueOf(MIN_TABLE_POSITION_CM + tmp / 14));
                             tableHigh = 0;
                             count = 0;
                         }
@@ -508,39 +531,6 @@ public class TableFragment extends Fragment {
         }
     };
 
-
-    @SuppressLint("StaticFieldLeak")
-    private class MoveToPoint extends AsyncTask<Void, Void, Void> {
-        String destinationPosition;
-
-        public MoveToPoint(String destinationPosition) {
-            this.destinationPosition = destinationPosition;
-        }
-
-        @Override
-        protected Void doInBackground(Void... arg0) {
-            try {
-                moveToPoint(destinationPosition);
-                boolean needWait = doesMotorWorking();
-                while (needWait) {
-                    Thread.sleep(100);
-                    needWait = doesMotorWorking();
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void result) {
-            canClick = true;
-        }
-
-        private boolean doesMotorWorking() {
-            return Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 14;
-        }
-    }
 
     private void setProgressColor() {
         if (timerService.isTimerOn()) {

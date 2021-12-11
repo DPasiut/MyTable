@@ -40,6 +40,10 @@ public class BluetoothConnectionThread extends Thread {
     }
 
 
+    public boolean isWorking() {
+        return isWorking;
+    }
+
     public void run() {
         isWorking = true;
         StringBuilder stringBuilder = new StringBuilder();

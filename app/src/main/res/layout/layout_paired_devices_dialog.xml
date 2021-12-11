@@ -27,8 +27,7 @@
 
 
             android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:layout_below="@+id/bluetooth_switch">
+            android:layout_centerVertical="true">
 
         </androidx.recyclerview.widget.RecyclerView>
 

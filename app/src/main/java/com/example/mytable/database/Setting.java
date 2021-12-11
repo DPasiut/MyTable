@@ -8,20 +8,20 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "settings")
 public class Setting {
 
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "setting_id")
     public Integer id;
 
-    @ColumnInfo(name = "setting_name")
-    public String name;
+    @ColumnInfo(name = "setting_description")
+    public String description;
 
     @ColumnInfo(name = "setting_value")
     public String value;
 
-    public Setting(Integer id, String name, String value){
-        this.id = id;
-        this.name = name;
+    public Setting(String name, String value){
+        this.description = name;
         this.value = value;
     }
 
+    public Setting(){ }
 }

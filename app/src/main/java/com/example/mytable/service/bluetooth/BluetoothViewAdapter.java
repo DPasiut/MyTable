@@ -1,13 +1,10 @@
-package com.example.mytable.ui.bluetooth;
+package com.example.mytable.service.bluetooth;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.view.LayoutInflater;
@@ -19,8 +16,6 @@ import android.widget.Toast;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mytable.R;
-import com.example.mytable.service.bluetooth.BluetoothCommunicationState;
-import com.example.mytable.service.bluetooth.BluetoothService;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -38,8 +33,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
 
     public BluetoothViewAdapter(Activity activity) {
         localDataSet = new ArrayList<>();
-        Intent intent = new Intent(activity, BluetoothService.class);
-        activity.bindService(intent, connection, Context.BIND_AUTO_CREATE);
+        bindBluetoothService(activity);
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
@@ -47,7 +41,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
 
         public ViewHolder(View view) {
             super(view);
-            textView = (TextView) view.findViewById(R.id.bt_device_name);
+            textView = view.findViewById(R.id.bt_device_name);
             itemView.setOnClickListener(this);
         }
 
@@ -62,18 +56,8 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
             }else {
                 name = this.textView.getText().toString();
                 context = v.getContext();
-                view = v;
-                connect(name, v);
-//                SharedPreferences preferences = v.getContext().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
-//                String deviceName = preferences.getString("deviceName", "");
-//
-//                if(!name.equals(deviceName)){
-//                    AlertDialog.Builder builder = new AlertDialog.Builder(v.getContext());
-//                    builder.setMessage("Do you want save " + name.toUpperCase() +" as default device for automatic connection?").setPositiveButton("Yes", dialogClickListener)
-//                            .setNegativeButton("No", dialogClickListener).show();
-//                }else {
-//                    connect(name, v);
-//                }
+//                view = v;
+                connect(name, v, textView);
             }
         }
     }
@@ -82,7 +66,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         View view = LayoutInflater.from(viewGroup.getContext())
-                .inflate(R.layout.bluetooth_item, viewGroup, false);
+                .inflate(R.layout.layout_bluetooth_item, viewGroup, false);
         return new ViewHolder(view);
     }
 
@@ -96,47 +80,26 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
         return localDataSet.size();
     }
 
-    public void clear(){
-        localDataSet.clear();
-        notifyDataSetChanged();
-    }
-
     public void setData(){
         localDataSet.clear();
         localDataSet.addAll(bluetoothService.getBluetoothDevices());
         notifyItemRangeInserted(0, localDataSet.size());
     }
 
-//    DialogInterface.OnClickListener dialogClickListener = (dialog, which) -> {
-//        switch (which){
-//            case DialogInterface.BUTTON_POSITIVE:
-//                connect(name, view);
-//                saveDeviceName("deviceName", name, context);
-//                break;
-//
-//            case DialogInterface.BUTTON_NEGATIVE:
-//                connect(name, view);
-//                break;
-//        }
-//    };
-
-//    private void saveDeviceName(String key, String value, Context context) {
-//        SharedPreferences sharedPreferences = context.getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
-//        SharedPreferences.Editor myEdit = sharedPreferences.edit();
-//        myEdit.putString(key, value);
-//        myEdit.apply();
-//    }
-    private void connect(String name, View view){
-        new ConnectWithBluetoothDevice(view, name).execute();
+    private void connect(String name, View view, TextView textView){
+        if (!bluetoothService.isBluetoothConnected()){
+            new ConnectWithBluetoothDevice(view, name, textView).execute();
+        }
     }
-
 
     private class ConnectWithBluetoothDevice extends AsyncTask<Void, Void, Void> {
         View view;
         String name;
-        public ConnectWithBluetoothDevice(View view, String name) {
+        TextView textView;
+        public ConnectWithBluetoothDevice(View view, String name, TextView textView) {
             this.view = view;
             this.name = name;
+            this.textView = textView;
         }
         @Override
         protected Void doInBackground(Void... arg0) {
@@ -161,10 +124,11 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
             switch (state){
                 case CONNECTED:
                     Toast.makeText(view.getContext(), "Connected with  " + name, Toast.LENGTH_SHORT).show();
-//                    clear();
+                    notifyDataSetChanged();
                     break;
                 case DISCONNECTED:
                     Toast.makeText(view.getContext(), "Connection Failed ", Toast.LENGTH_SHORT).show();
+                    notifyDataSetChanged();
                     break;
             }
         }
@@ -189,4 +153,9 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
         }
 
     };
+
+    private void bindBluetoothService(Activity activity) {
+        Intent intent = new Intent(activity, BluetoothService.class);
+        activity.bindService(intent, connection, Context.BIND_AUTO_CREATE);
+    }
 }

@@ -1,4 +1,4 @@
-package com.example.mytable.ui.bluetooth;
+package com.example.mytable.service.bluetooth;
 
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
@@ -6,9 +6,6 @@ import android.view.View;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.example.mytable.service.bluetooth.BluetoothService;
-import com.example.mytable.ui.bluetooth.BluetoothViewAdapter;
 
 import java.util.Objects;
 

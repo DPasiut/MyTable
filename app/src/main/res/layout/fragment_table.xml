@@ -34,14 +34,14 @@
                 android:orientation="horizontal"
                 android:layout_marginHorizontal="5dp">
 
-                <include layout="@layout/timer_card"/>
+                <include layout="@layout/layout_timer_card"/>
 
                 <Space
                     android:layout_width="5dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1" />
 
-                <include layout="@layout/bluetooth_widget_card"
+                <include layout="@layout/layout_bluetooth_widget"
                     style="@style/CardView"/>
 
             </LinearLayout>
@@ -89,27 +89,29 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:layout_marginBottom="70dp">
 
-                <Button
-                    android:id="@+id/user_1"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:drawableLeft="@drawable/seat_icon" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
 
-                <Button
-                    android:id="@+id/user_2"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="10dp"
-                    android:layout_marginRight="10dp"
-                    android:drawableLeft="@drawable/stand_icon" />
+                    <Button
+                        android:id="@+id/add_setting_btn"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight=".2"
+                        android:drawableLeft="@android:drawable/ic_input_add"
+                        android:background="@drawable/back"
+                        android:layout_marginHorizontal="10dp" />
 
-                <Button
-                    android:id="@+id/user_3"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:drawableLeft="@drawable/first_setting_icon" />
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/settings_recycler_view"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:layout_weight=".8"/>
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
