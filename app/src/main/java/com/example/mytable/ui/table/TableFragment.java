@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -66,7 +65,7 @@ public class TableFragment extends Fragment {
     private Integer timeMaxValue = 0;
     private boolean isDialogDisplayed = false;
     private boolean isTimeDialogDisplayed = false;
-
+    private String connectedDevice = null;
     private CircularProgressIndicator progressBar;
     private boolean mShouldUnbind;
     private SettingRecycleViewAdapter settingRecycleViewAdapter;
@@ -225,6 +224,7 @@ public class TableFragment extends Fragment {
         SharedPreferences preferences = this.requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
         timeMaxValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
         timeLeft = Integer.valueOf(preferences.getString(CURRENT_TIMER_VALUE, "0"));
+        connectedDevice = preferences.getString("connectedDevice", "");
     }
 
     private void moveToPoint(String s) {
@@ -278,12 +278,14 @@ public class TableFragment extends Fragment {
         builder.setNeutralButton("Disable BT", (dialog, which) -> {
             bluetoothService.disableBluetooth();
             isDialogDisplayed = false;
+            saveToPreferences("connectedDevice", "");
             dialog.cancel();
         });
         if (bluetoothService.isBluetoothConnected()) {
             builder.setNeutralButton("Disconnect", (dialog, which) -> {
                 isDialogDisplayed = false;
                 bluetoothService.disconnect();
+                saveToPreferences("connectedDevice", "");
                 dialog.cancel();
             });
         }
@@ -322,7 +324,7 @@ public class TableFragment extends Fragment {
         setValue.setOnClickListener(v -> {
             if (valueInput.getText().length() > 0) {
                 int value = Integer.parseInt(String.valueOf(valueInput.getText()));
-                if (value > MIN_TABLE_POSITION_CM && value <= MAX_TABLE_POSITION_CM) {
+                if (value >= MIN_TABLE_POSITION_CM && value <= MAX_TABLE_POSITION_CM) {
                     textView.setText(valueInput.getText());
                 }
                 if (value > MAX_TABLE_POSITION_CM) {
@@ -337,7 +339,7 @@ public class TableFragment extends Fragment {
         builder.setView(view);
 
         builder.setPositiveButton("add", (dialog, which) -> {
-            saveNewSetting(description.getText().toString(), textView.getText().toString());
+            saveNewSetting(description.getText().toString().substring(0, 15), textView.getText().toString());
             settingRecycleViewAdapter.setData();
             Objects.requireNonNull(settingsRecyclerView.getAdapter()).notifyDataSetChanged();
             settingsRecyclerView.invalidate();
@@ -516,6 +518,7 @@ public class TableFragment extends Fragment {
                         if (timeLeft < 1) {
                             showTimesUpDialog();
                             isTimeDialogDisplayed = true;
+                            startTimer.setBackground(requireContext().getDrawable(R.drawable.play_circle));
                         }
                     }
                 }
@@ -547,7 +550,7 @@ public class TableFragment extends Fragment {
         super.onResume();
         getPreferences();
         progressBar.setProgress(timeLeft / 60, timeMaxValue);
-
+        btName.setText(connectedDevice);
     }
 
     @Override
@@ -560,5 +563,7 @@ public class TableFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         unbindService();
+        saveToPreferences("connectedDevice", "");
+        connectedDevice = "";
     }
 }

@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.view.LayoutInflater;
@@ -123,6 +124,7 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
             BluetoothCommunicationState state = bluetoothService.getState();
             switch (state){
                 case CONNECTED:
+                    saveToPreferences("connectedDevice", name);
                     Toast.makeText(view.getContext(), "Connected with  " + name, Toast.LENGTH_SHORT).show();
                     notifyDataSetChanged();
                     break;
@@ -157,5 +159,12 @@ public class BluetoothViewAdapter extends RecyclerView.Adapter<BluetoothViewAdap
     private void bindBluetoothService(Activity activity) {
         Intent intent = new Intent(activity, BluetoothService.class);
         activity.bindService(intent, connection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void saveToPreferences(String key, String value) {
+        SharedPreferences sharedPreferences = context.getApplicationContext().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+        SharedPreferences.Editor myEdit = sharedPreferences.edit();
+        myEdit.putString(key, value);
+        myEdit.apply();
     }
 }
