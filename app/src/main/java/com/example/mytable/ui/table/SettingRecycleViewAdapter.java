@@ -39,12 +39,12 @@ public class SettingRecycleViewAdapter extends RecyclerView.Adapter<SettingRecyc
 
     public SettingRecycleViewAdapter(Activity activity) {
         settings = new ArrayList<>();
-        repository= new SettingsRepository(activity.getApplication());
+        repository = new SettingsRepository(activity.getApplication());
         bindBluetoothService(activity);
     }
 
 
-    public class ViewHolder extends RecyclerView.ViewHolder  implements View.OnClickListener {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         TextView description;
         TextView value;
         Button removeButton;
@@ -54,12 +54,13 @@ public class SettingRecycleViewAdapter extends RecyclerView.Adapter<SettingRecyc
             description = itemView.findViewById(R.id.setting_name);
             value = itemView.findViewById(R.id.setting_value);
             removeButton = itemView.findViewById(R.id.remove_setting_btn);
+
             itemView.setOnClickListener(this);
         }
 
         @Override
         public void onClick(View v) {
-            if (bluetoothService.isCanClick()){
+            if (bluetoothService.isCanClick()) {
                 bluetoothService.moveToPoint(value.getText().toString());
             }
         }
@@ -80,15 +81,17 @@ public class SettingRecycleViewAdapter extends RecyclerView.Adapter<SettingRecyc
         holder.value.setText(settings.get(position).value);
         holder.removeButton.setOnClickListener(v -> {
             repository.delete(settings.get(position).id);
+            settings.remove(position);
             notifyDataSetChanged();
         });
     }
+
     @Override
     public int getItemCount() {
         return settings.size();
     }
 
-    public void setData(){
+    public void setData() {
         new SetData().execute();
     }
 
@@ -116,7 +119,8 @@ public class SettingRecycleViewAdapter extends RecyclerView.Adapter<SettingRecyc
 
     @SuppressLint("StaticFieldLeak")
     private class SetData extends AsyncTask<Void, Void, Void> {
-        public SetData() { }
+        public SetData() {
+        }
 
         @Override
         protected Void doInBackground(Void... arg0) {
@@ -126,5 +130,4 @@ public class SettingRecycleViewAdapter extends RecyclerView.Adapter<SettingRecyc
             return null;
         }
     }
-
 }

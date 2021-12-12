@@ -339,7 +339,7 @@ public class TableFragment extends Fragment {
         builder.setView(view);
 
         builder.setPositiveButton("add", (dialog, which) -> {
-            saveNewSetting(description.getText().toString().substring(0, 15), textView.getText().toString());
+            saveNewSetting(description.getText().toString(), textView.getText().toString());
             settingRecycleViewAdapter.setData();
             Objects.requireNonNull(settingsRecyclerView.getAdapter()).notifyDataSetChanged();
             settingsRecyclerView.invalidate();
