@@ -2,8 +2,8 @@ package com.example.mytable;
 
 public class PreferencesConstants {
     //Table
-    public static final int MIN_TABLE_POSITION_CM = 70;
-    public static final int MAX_TABLE_POSITION_CM = 140;
+    public static final int MIN_TABLE_POSITION_CM = 62;
+    public static final int MAX_TABLE_POSITION_CM = 124;
 
 
 

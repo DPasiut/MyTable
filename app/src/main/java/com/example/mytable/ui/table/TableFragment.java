@@ -38,6 +38,7 @@ import com.example.mytable.service.bluetooth.BluetoothViewAdapter;
 import com.example.mytable.service.bluetooth.SetBluetoothDevicesList;
 import com.example.mytable.service.time.TimerService;
 
+import java.util.ArrayList;
 import java.util.Objects;
 
 import antonkozyriatskyi.circularprogressindicator.CircularProgressIndicator;
@@ -225,10 +226,6 @@ public class TableFragment extends Fragment {
         timeMaxValue = Integer.valueOf(preferences.getString(MAX_TIMER_VALUE, "0"));
         timeLeft = Integer.valueOf(preferences.getString(CURRENT_TIMER_VALUE, "0"));
         connectedDevice = preferences.getString("connectedDevice", "");
-    }
-
-    private void moveToPoint(String s) {
-        bluetoothService.moveToPoint(s);
     }
 
     private void up() {
@@ -446,17 +443,7 @@ public class TableFragment extends Fragment {
                     if (position != null) {
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("message");
-                        if (count == 10) {
-                            int tmp = tableHigh / 10;
-                            currentPosition = tmp;
-                            position.setText(String.valueOf(MIN_TABLE_POSITION_CM + tmp / 14));
-                            tableHigh = 0;
-                            count = 0;
-                        }
-                        if (o != null) {
-                            tableHigh += Integer.parseInt(o);
-                            count++;
-                        }
+                        position.setText(String.valueOf(Integer.valueOf((int) (MIN_TABLE_POSITION_CM + Integer.parseInt(o) / 41))));
                     }
                 }
             });
@@ -498,14 +485,16 @@ public class TableFragment extends Fragment {
     };
 
     private final ServiceConnection timerServiceConnection = new ServiceConnection() {
-        @SuppressLint("HandlerLeak")
+        @SuppressLint({"HandlerLeak", "UseCompatLoadingForDrawables"})
         @Override
         public void onServiceConnected(ComponentName className, IBinder service) {
             TimerService.LocalBinder binder = (TimerService.LocalBinder) service;
             timerService = binder.getService();
-
+            if (timerService.isTimerOn()) {
+                startTimer.setBackground(requireContext().getDrawable(R.drawable.pause_circle));
+            }
             timerService.setTimerHandler(new Handler(Looper.myLooper()) {
-                @SuppressLint("SetTextI18n")
+                @SuppressLint({"SetTextI18n", "UseCompatLoadingForDrawables"})
                 @Override
                 public void handleMessage(Message msg) {
                     if (progressBar != null) {

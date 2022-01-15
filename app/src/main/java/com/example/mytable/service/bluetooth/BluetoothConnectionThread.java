@@ -44,11 +44,11 @@ public class BluetoothConnectionThread extends Thread {
         return isWorking;
     }
 
+    @Override
     public void run() {
         isWorking = true;
         StringBuilder stringBuilder = new StringBuilder();
         char lastChar = '.';
-
         while (isWorking) {
             try {
                 while (mmInStream.available() > 0 && lastChar != ';') {
@@ -75,7 +75,6 @@ public class BluetoothConnectionThread extends Thread {
             Log.d("write", new String(bytes));
             mmOutStream.write(bytes);
             mmOutStream.flush();
-
         } catch (IOException e) {
             Log.e(TAG, "Error occurred when sending data", e);
         }

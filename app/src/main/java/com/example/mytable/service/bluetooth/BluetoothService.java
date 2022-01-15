@@ -25,6 +25,7 @@ import static com.example.mytable.PreferencesConstants.MIN_TABLE_POSITION_CM;
 
 public class BluetoothService extends Service {
     private static final String TAG = "[BLUETOOTH_SERVICE]";
+    private static final int SCALE = 41;
     private final IBinder binder = new LocalBinder();
 
     private BluetoothConnectionThread connectionThread;
@@ -64,7 +65,6 @@ public class BluetoothService extends Service {
 
     @SuppressLint("ShowToast")
     public void connectDevice(BluetoothDevice device) {
-
         stopConnectionThread();
         try {
             connectionThread = new BluetoothConnectionThread(bluetoothAdapter, device, this);
@@ -87,7 +87,6 @@ public class BluetoothService extends Service {
             if (connectionThread.isWorking()) {
                 setState(BluetoothCommunicationState.CONNECTED);
             }
-//            state = BluetoothCommunicationState.CONNECTED;
         } catch (Exception e) {
             setConnectedDevice("");
             state = BluetoothCommunicationState.DISCONNECTED;
@@ -140,6 +139,10 @@ public class BluetoothService extends Service {
     }
 
     public void down(String s) {
+        sendMessageToDevice(s);
+    }
+
+    public void calibrate(String s){
         sendMessageToDevice(s);
     }
 
@@ -266,8 +269,10 @@ public class BluetoothService extends Service {
         String destinationPosition;
 
         public MoveToPoint(String destinationPosition) {
+            int tmp = Integer.parseInt(destinationPosition) - MIN_TABLE_POSITION_CM;
+
             //Te skomplikowane obliczenia to po prostu przeskalowanie z wartosći wyświetlanej w cm do wartości przetwatzanej w arduino -> odwrotność operacji z handlera w TableFragment
-            this.destinationPosition = String.valueOf((Integer.parseInt(destinationPosition) - MIN_TABLE_POSITION_CM) * 14);
+            this.destinationPosition = String.valueOf((int)(Math.max(tmp, 1)) * SCALE);
         }
 
         @Override
@@ -292,7 +297,7 @@ public class BluetoothService extends Service {
         }
 
         private boolean doesMotorWorking() {
-            return currentPosition != null ? Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 14 : false;
+            return currentPosition != null && Math.abs(Integer.parseInt(destinationPosition) - currentPosition) > 41;
         }
     }
 
