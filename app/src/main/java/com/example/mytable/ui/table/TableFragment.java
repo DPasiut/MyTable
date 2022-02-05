@@ -398,6 +398,7 @@ public class TableFragment extends Fragment {
             timerService.cancelAlarm();
             progressBar.setProgress(timeMaxValue, timeMaxValue);
             timerService.startTimer(timerService.convertTimeToSeconds(0, timeMaxValue, 0), getContext());
+            startTimer.setBackground(requireContext().getDrawable(R.drawable.pause_circle));
             dialog.cancel();
         });
         builder.setNeutralButton("stop alarm", (dialog, which) -> {
@@ -436,6 +437,8 @@ public class TableFragment extends Fragment {
             BluetoothService.LocalBinder binder = (BluetoothService.LocalBinder) service;
             bluetoothService = binder.getService();
             setBluetoothButtonColor();
+
+            setDeviceName();
 
             bluetoothService.setBluetoothHandler(new Handler(Looper.getMainLooper()) {
                 @Override
@@ -483,6 +486,23 @@ public class TableFragment extends Fragment {
             bluetoothService.setStateHandler(null);
         }
     };
+
+    @SuppressLint("UseCompatLoadingForDrawables")
+    private void setDeviceName() {
+        if(!bluetoothService.isBluetoothConnected() && !bluetoothService.isBluetoothEnabled()){
+            bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_off));
+            btName.setText("");
+        }
+        if(!bluetoothService.isBluetoothConnected() && bluetoothService.isBluetoothEnabled()){
+            bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_on));
+            btName.setText("");
+        }
+
+        if(bluetoothService.isBluetoothConnected()){
+            bluetoothButton.setBackground(requireContext().getDrawable(R.drawable.bluetooth_connected));
+            btName.setText(bluetoothService.getConnectedDevice());
+        }
+    }
 
     private final ServiceConnection timerServiceConnection = new ServiceConnection() {
         @SuppressLint({"HandlerLeak", "UseCompatLoadingForDrawables"})
