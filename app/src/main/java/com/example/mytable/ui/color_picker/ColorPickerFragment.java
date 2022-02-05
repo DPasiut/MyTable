@@ -29,9 +29,6 @@ import top.defaults.colorpicker.ColorPickerView;
 
 public class ColorPickerFragment extends Fragment {
 
-    private static final String SAVED_STATE_KEY_COLOR = "saved_state_key_color";
-    private static final int INITIAL_COLOR = 0xFFFF8000;
-
     private BluetoothService bluetoothService;
     private boolean mBound = false;
 
@@ -50,9 +47,6 @@ public class ColorPickerFragment extends Fragment {
         pickedColor = root.findViewById(R.id.pickedColor);
         txtColorHex = root.findViewById(R.id.colorHex);
         powerBtn = root.findViewById(R.id.powerBtn);
-
-        colorPickerView.setInitialColor(INITIAL_COLOR);
-        pickedColor.setBackgroundColor(INITIAL_COLOR);
 
         colorPickerView.subscribe((color, fromUser, shouldPropagate) -> {
             pickedColor.setBackgroundColor(color);

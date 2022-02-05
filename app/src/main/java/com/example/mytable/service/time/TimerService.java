@@ -88,7 +88,7 @@ public class TimerService extends Service {
                         isTimerOn = false;startAlarm(context);
                     }
                 }
-            }, 0, 100);
+            }, 0, 1000);
         }
     }
 
