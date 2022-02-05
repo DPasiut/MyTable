@@ -48,14 +48,14 @@ public class ColorPickerFragment extends Fragment {
         txtColorHex = root.findViewById(R.id.colorHex);
         powerBtn = root.findViewById(R.id.powerBtn);
 
+        colorPickerView.setOnlyUpdateOnTouchEventUp(true);
         colorPickerView.subscribe((color, fromUser, shouldPropagate) -> {
             pickedColor.setBackgroundColor(color);
-            txtColorHex.setText(colorHex(color));
+            txtColorHex.setText(color(color));
             if (mBound) {
-                new Handler().postDelayed(() -> {
-                    bluetoothService.lightChangeColor("c" + colorHex(color));
-//                        Log.d("SEND COLOR NUMBER", bluetoothService.lightTurnOn(txtColorHex.getText().toString()));
-                }, 200);
+//                new Handler().postDelayed(() -> bluetoothService.lightChangeColor(color(color)), 500);
+                bluetoothService.lightChangeColor(color(color));
+
             }
         });
 
@@ -74,12 +74,12 @@ public class ColorPickerFragment extends Fragment {
     }
 
 
-//    @Override
-//    public void onSaveInstanceState(@NotNull Bundle outState) {
-//        super.onSaveInstanceState(outState);
-//        outState.putInt(SAVED_STATE_KEY_COLOR, colorPickerView.getColor());
-//    }
-
+    private String color(int color){
+        String red = String.valueOf(Color.red(color));
+        String green = String.valueOf(Color.green(color));
+        String blue = String.valueOf(Color.blue(color));
+        return "c" + red + "," + green + "," + blue + ";";
+    }
     private String colorHex(int color) {
         int a = Color.alpha(color);
         int r = Color.red(color);
