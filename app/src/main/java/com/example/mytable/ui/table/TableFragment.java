@@ -446,7 +446,8 @@ public class TableFragment extends Fragment {
                     if (position != null) {
                         Bundle bundle = msg.getData();
                         String o = (String) bundle.get("message");
-                        position.setText(String.valueOf(Integer.valueOf((int) (MIN_TABLE_POSITION_CM + Integer.parseInt(o) / 41))));
+                        double result = Double.parseDouble(o) / 40;
+                        position.setText(String.valueOf(Integer.valueOf((int) (MIN_TABLE_POSITION_CM + result))));
                     }
                 }
             });

@@ -25,7 +25,7 @@ import static com.example.mytable.PreferencesConstants.MIN_TABLE_POSITION_CM;
 
 public class BluetoothService extends Service {
     private static final String TAG = "[BLUETOOTH_SERVICE]";
-    private static final int SCALE = 41;
+    private static final Double SCALE = 40.5;
     private final IBinder binder = new LocalBinder();
 
     private BluetoothConnectionThread connectionThread;
@@ -272,7 +272,7 @@ public class BluetoothService extends Service {
             int tmp = Integer.parseInt(destinationPosition) - MIN_TABLE_POSITION_CM;
 
             //Te skomplikowane obliczenia to po prostu przeskalowanie z wartosći wyświetlanej w cm do wartości przetwatzanej w arduino -> odwrotność operacji z handlera w TableFragment
-            this.destinationPosition = String.valueOf((int)(Math.max(tmp, 1)) * SCALE);
+            this.destinationPosition = String.valueOf(Integer.valueOf((int) (Math.max(tmp, 1) * SCALE)));
         }
 
         @Override
